@@ -255,8 +255,19 @@ Section "Install"
   SetOutPath "$INSTDIR"
   SetOverwrite on
 
-  !insertmacro AbortOnRunningApp "$INSTDIR\Quattro.exe"
+  !insertmacro AbortOnRunningApp "Quattro.exe"
 
+!ifdef QUATTRO_LOCAL_X64
+  ; Reproducible local package for the current Windows x64 target. Release CI
+  ; omits this define and keeps producing the multi-architecture installer.
+  ${IfNot} ${IsNativeAMD64}
+    Abort "This Quattro build requires 64-bit Windows on an x64 processor."
+  ${EndIf}
+  File /oname=libcronet.dll "deployment\windows-amd64\libcronet.dll"
+  File /oname=QuattroCore.exe "deployment\windows-amd64\QuattroCore.exe"
+  File /oname=Quattro.exe "deployment\windows-amd64\Quattro.exe"
+  File /oname=QuattroUpdater.exe "deployment\windows-amd64\QuattroUpdater.exe"
+!else
   ${If} ${IsNativeAMD64}
     ${If} ${AtLeastWaaS} 1809
       File /oname=libcronet.dll "deployment\windows-amd64\libcronet.dll"
@@ -280,6 +291,7 @@ Section "Install"
   ${Else}
     Abort "Unsupported CPU architecture!"
   ${EndIf}
+!endif
 
   CreateShortcut "$DESKTOP\Quattro.lnk" "$INSTDIR\Quattro.exe" "" "$INSTDIR\Quattro.exe" 0
   CreateShortcut "$SMPROGRAMS\Quattro.lnk" "$INSTDIR\Quattro.exe" "" "$INSTDIR\Quattro.exe" 0
@@ -374,7 +386,7 @@ Function un.DataPageLeave
 FunctionEnd
 
 Section "Uninstall"
-  !insertmacro AbortOnRunningApp "$INSTDIR\Quattro.exe"
+  !insertmacro AbortOnRunningApp "Quattro.exe"
 
   Delete "$SMPROGRAMS\Quattro.lnk"
   Delete "$DESKTOP\Quattro.lnk"

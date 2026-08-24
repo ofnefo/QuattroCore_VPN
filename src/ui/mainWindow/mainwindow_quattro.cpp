@@ -14,18 +14,207 @@
 #include <QComboBox>
 #include <QDialog>
 #include <QDialogButtonBox>
+#include <QFrame>
 #include <QFormLayout>
+#include <QHBoxLayout>
 #include <QLabel>
+#include <QMenu>
 #include <QMessageBox>
+#include <QPixmap>
 #include <QPushButton>
+#include <QSizePolicy>
 #include <QStackedWidget>
+#include <QToolButton>
 #include <QUrl>
+#include <QVBoxLayout>
 
 void MainWindow::setupQuattroDashboard() {
     if (quattroDashboard != nullptr) return;
 
-    advancedCentralWidget = takeCentralWidget();
+    auto *legacyCentralWidget = takeCentralWidget();
     quattroStack = new QStackedWidget(this);
+    advancedCentralWidget = new QWidget(quattroStack);
+    advancedCentralWidget->setObjectName(QStringLiteral("quattroAdvanced"));
+    auto *advancedLayout = new QVBoxLayout(advancedCentralWidget);
+    advancedLayout->setContentsMargins(0, 0, 0, 0);
+    advancedLayout->setSpacing(0);
+
+    auto *advancedHeader = new QFrame(advancedCentralWidget);
+    advancedHeader->setObjectName(QStringLiteral("advancedHeader"));
+    auto *advancedHeaderLayout = new QHBoxLayout(advancedHeader);
+    advancedHeaderLayout->setContentsMargins(16, 11, 16, 11);
+    advancedHeaderLayout->setSpacing(11);
+    auto *advancedLogo = new QLabel(advancedHeader);
+    advancedLogo->setPixmap(QPixmap(QStringLiteral(":/Quattro/Quattro.png")).scaled(
+        32, 32, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    advancedLogo->setFixedSize(34, 34);
+    advancedHeaderLayout->addWidget(advancedLogo);
+    auto *advancedBrand = new QVBoxLayout;
+    advancedBrand->setSpacing(0);
+    auto *advancedTitle = new QLabel(tr("Quattro Workspace"), advancedHeader);
+    advancedTitle->setObjectName(QStringLiteral("advancedTitle"));
+    auto *advancedHint = new QLabel(tr("Расширенное управление профилями и маршрутами"), advancedHeader);
+    advancedHint->setObjectName(QStringLiteral("advancedHint"));
+    advancedBrand->addWidget(advancedTitle);
+    advancedBrand->addWidget(advancedHint);
+    advancedHeaderLayout->addLayout(advancedBrand);
+    advancedHeaderLayout->addSpacing(12);
+    ui->data_view->setMinimumWidth(0);
+    ui->data_view->setMaximumHeight(42);
+    advancedHeaderLayout->addWidget(ui->data_view, 1);
+    auto *advancedBadge = new QLabel(tr("ADVANCED"), advancedHeader);
+    advancedBadge->setObjectName(QStringLiteral("advancedBadge"));
+    advancedHeaderLayout->addWidget(advancedBadge);
+    auto *backButton = new QPushButton(tr("← Главная"), advancedHeader);
+    backButton->setObjectName(QStringLiteral("advancedBack"));
+    backButton->setCursor(Qt::PointingHandCursor);
+    backButton->setMinimumHeight(38);
+    advancedHeaderLayout->addWidget(backButton);
+    advancedLayout->addWidget(advancedHeader);
+    advancedLayout->addWidget(legacyCentralWidget, 1);
+
+    if (auto *layout = legacyCentralWidget->layout()) {
+        layout->setContentsMargins(14, 12, 14, 14);
+        layout->setSpacing(10);
+    }
+
+    const QList<QToolButton *> advancedNav = {
+        ui->toolButton_program, ui->toolButton_preferences, ui->toolButton_testing,
+        ui->toolButton_routing, ui->toolButton_tools,
+    };
+    const QStringList advancedLabels = {
+        tr("Меню"), tr("Параметры"), tr("Проверка"), tr("Маршруты"), tr("Инструменты"),
+    };
+    for (int i = 0; i < advancedNav.size(); ++i) {
+        auto *button = advancedNav.at(i);
+        button->setText(advancedLabels.at(i));
+        button->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+        button->setIconSize(QSize(18, 18));
+        button->setMinimumWidth(0);
+        button->setMaximumWidth(132);
+        button->setMinimumHeight(42);
+        button->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
+        button->setStyleSheet(QString());
+    }
+    ui->tabWidget->setStyleSheet(QString());
+    ui->profilesTableView->setStyleSheet(QString());
+
+    advancedCentralWidget->setStyleSheet(QStringLiteral(R"qss(
+        QWidget#quattroAdvanced, QWidget#quattroAdvanced > QWidget {
+            background: #141a23;
+            color: #edf1f6;
+            font-family: "Segoe UI Variable Text", "Segoe UI";
+            font-size: 13px;
+        }
+        QFrame#advancedHeader {
+            background: #171e27;
+            border-bottom: 1px solid #303946;
+        }
+        QLabel#advancedTitle { color: #ffffff; font-size: 16px; font-weight: 750; }
+        QLabel#advancedHint { color: #929dab; font-size: 11px; }
+        QLabel#advancedBadge {
+            color: #65ddeb;
+            background: #173c48;
+            border: 1px solid #2bbfd4;
+            border-radius: 10px;
+            padding: 4px 8px;
+            font-size: 10px;
+            font-weight: 750;
+        }
+        QPushButton#advancedBack {
+            color: #ecf1f6;
+            background: #222a35;
+            border: 1px solid #3a4553;
+            border-radius: 9px;
+            padding: 0 13px;
+            font-weight: 650;
+        }
+        QPushButton#advancedBack:hover { border-color: #48d0e1; color: #6de2ef; }
+        QToolButton {
+            color: #dfe5ec;
+            background: #1b222c;
+            border: 1px solid #303946;
+            border-radius: 9px;
+            padding: 7px 9px;
+            font-weight: 600;
+        }
+        QToolButton:hover, QToolButton:checked {
+            color: #6de2ef;
+            background: #1c333e;
+            border-color: #37c7d9;
+        }
+        QToolButton::menu-indicator { image: none; width: 0; }
+        QCheckBox { color: #d9dfe7; spacing: 7px; }
+        QSplitter::handle { background: #303946; height: 2px; }
+        QTabWidget::pane {
+            background: #1a212b;
+            border: 1px solid #303946;
+            border-radius: 10px;
+            top: -1px;
+        }
+        QTabBar { background: transparent; qproperty-drawBase: 0; }
+        QTabBar::tab {
+            color: #9fa9b6;
+            background: #181f28;
+            border: 1px solid #303946;
+            border-bottom: none;
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+            padding: 8px 14px;
+            margin-right: 4px;
+        }
+        QTabBar::tab:selected { color: #69e0ed; background: #1c333e; border-color: #36c5d8; }
+        QTableView, QTreeView, QListView, QTextEdit, QPlainTextEdit, QTextBrowser {
+            color: #e8edf3;
+            background: #171e27;
+            alternate-background-color: #1b232d;
+            border: 1px solid #303946;
+            border-radius: 8px;
+            gridline-color: #2b3440;
+            selection-background-color: #174b58;
+            selection-color: #ffffff;
+        }
+        QHeaderView::section {
+            color: #aeb7c3;
+            background: #202833;
+            border: none;
+            border-right: 1px solid #303946;
+            border-bottom: 1px solid #303946;
+            padding: 7px 8px;
+            font-weight: 650;
+        }
+        QLineEdit, QComboBox, QSpinBox {
+            color: #edf1f6;
+            background: #151b24;
+            border: 1px solid #3a4553;
+            border-radius: 7px;
+            padding: 5px 8px;
+            selection-background-color: #1f8291;
+        }
+        QLineEdit:focus, QComboBox:focus, QSpinBox:focus { border-color: #3bd0e3; }
+        QPushButton {
+            color: #e4e9ef;
+            background: #222a35;
+            border: 1px solid #3a4553;
+            border-radius: 8px;
+            padding: 6px 11px;
+        }
+        QPushButton:hover { color: #6de2ef; border-color: #43cddd; background: #1c333e; }
+        QScrollBar:vertical { background: #141a23; width: 8px; }
+        QScrollBar::handle:vertical { background: #3d4856; border-radius: 4px; min-height: 26px; }
+        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
+    )qss"));
+
+    const QString menuStyle = QStringLiteral(
+        "QMenu{background:#1b222c;color:#edf1f6;border:1px solid #3a4553;padding:6px;}"
+        "QMenu::item{padding:7px 28px 7px 10px;border-radius:6px;}"
+        "QMenu::item:selected{background:#174b58;color:#ffffff;}"
+        "QMenu::separator{height:1px;background:#303946;margin:5px 8px;}");
+    for (auto *menu : {ui->menu_program, ui->menu_preferences, ui->menuTesting,
+                       ui->menuRouting_Menu, ui->menuTools}) {
+        menu->setStyleSheet(menuStyle);
+    }
+
     quattroDashboard = new QuattroDashboard(quattroStack);
     quattroStack->addWidget(quattroDashboard);
     quattroStack->addWidget(advancedCentralWidget);
@@ -36,9 +225,6 @@ void MainWindow::setupQuattroDashboard() {
     setWindowTitle(QStringLiteral("Quattro"));
     resize(qMax(width(), 940), qMax(height(), 760));
 
-    auto *backButton = new QPushButton(tr("← Quattro"), advancedCentralWidget);
-    backButton->setMinimumHeight(34);
-    if (auto *layout = advancedCentralWidget->layout()) layout->setMenuBar(backButton);
     connect(backButton, &QPushButton::clicked, this, [this] {
         quattroStack->setCurrentWidget(quattroDashboard);
     });

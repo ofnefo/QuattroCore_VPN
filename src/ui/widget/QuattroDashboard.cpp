@@ -8,10 +8,12 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
-#include <QPushButton>
 #include <QPixmap>
+#include <QPushButton>
+#include <QResizeEvent>
 #include <QScrollArea>
 #include <QSignalBlocker>
+#include <QSizePolicy>
 #include <QStyle>
 #include <QVBoxLayout>
 
@@ -19,6 +21,7 @@ namespace {
 QFrame *card(QWidget *parent = nullptr) {
     auto *frame = new QFrame(parent);
     frame->setObjectName(QStringLiteral("card"));
+    frame->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
     return frame;
 }
 
@@ -26,93 +29,120 @@ QPushButton *secondaryButton(const QString &text, QWidget *parent = nullptr) {
     auto *button = new QPushButton(text, parent);
     button->setProperty("kind", "secondary");
     button->setCursor(Qt::PointingHandCursor);
+    button->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     return button;
+}
+
+QLabel *eyebrow(const QString &text, QWidget *parent) {
+    auto *label = new QLabel(text, parent);
+    label->setObjectName(QStringLiteral("eyebrow"));
+    return label;
 }
 }
 
 QuattroDashboard::QuattroDashboard(QWidget *parent) : QWidget(parent) {
     setObjectName(QStringLiteral("quattroDashboard"));
-    setMinimumSize(760, 620);
+    setMinimumSize(600, 520);
 
     auto *page = new QWidget(this);
+    page->setObjectName(QStringLiteral("dashboardPage"));
+    page->setMinimumWidth(0);
+    page->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
     auto *root = new QVBoxLayout(page);
-    root->setContentsMargins(36, 28, 36, 28);
-    root->setSpacing(18);
+    root->setContentsMargins(28, 24, 28, 24);
+    root->setSpacing(14);
 
-    auto *header = new QHBoxLayout;
-    auto *logo = new QLabel(page);
+    auto *header = card(page);
+    header->setObjectName(QStringLiteral("headerCard"));
+    auto *headerLayout = new QHBoxLayout(header);
+    headerLayout->setContentsMargins(18, 14, 18, 14);
+    headerLayout->setSpacing(13);
+
+    auto *logo = new QLabel(header);
     logo->setPixmap(QPixmap(QStringLiteral(":/Quattro/Quattro.png")).scaled(
-        54, 54, Qt::KeepAspectRatio, Qt::SmoothTransformation));
-    logo->setFixedSize(58, 58);
-    header->addWidget(logo);
+        38, 38, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    logo->setFixedSize(40, 40);
+    headerLayout->addWidget(logo);
 
     auto *brand = new QVBoxLayout;
-    auto *title = new QLabel(QStringLiteral("QUATTRO"), page);
+    brand->setSpacing(0);
+    auto *title = new QLabel(QStringLiteral("Quattro VPN"), header);
     title->setObjectName(QStringLiteral("brandTitle"));
-    auto *subtitle = new QLabel(tr("Умное подключение на базе Quattro"), page);
+    auto *subtitle = new QLabel(tr("Умная маршрутизация для Windows"), header);
     subtitle->setObjectName(QStringLiteral("muted"));
     brand->addWidget(title);
     brand->addWidget(subtitle);
-    header->addLayout(brand);
-    header->addStretch();
+    headerLayout->addLayout(brand);
+    headerLayout->addStretch();
 
-    auto *statusPill = new QFrame(page);
+    auto *statusPill = new QFrame(header);
     statusPill->setObjectName(QStringLiteral("statusPill"));
     auto *statusLayout = new QHBoxLayout(statusPill);
     statusLayout->setContentsMargins(12, 7, 12, 7);
-    statusLayout->setSpacing(8);
+    statusLayout->setSpacing(7);
     m_statusDot = new QLabel(QStringLiteral("●"), statusPill);
     m_statusDot->setObjectName(QStringLiteral("statusDot"));
     m_statusText = new QLabel(tr("Отключено"), statusPill);
+    m_statusText->setObjectName(QStringLiteral("statusText"));
     statusLayout->addWidget(m_statusDot);
     statusLayout->addWidget(m_statusText);
-    header->addWidget(statusPill);
-    root->addLayout(header);
+    headerLayout->addWidget(statusPill);
+    root->addWidget(header);
 
     auto *hero = card(page);
+    hero->setObjectName(QStringLiteral("heroCard"));
     auto *heroLayout = new QHBoxLayout(hero);
-    heroLayout->setContentsMargins(28, 24, 28, 24);
-    heroLayout->setSpacing(24);
+    heroLayout->setContentsMargins(24, 22, 24, 22);
+    heroLayout->setSpacing(20);
 
     auto *heroText = new QVBoxLayout;
-    auto *heroTitle = new QLabel(tr("Без лишних настроек"), hero);
+    heroText->setSpacing(7);
+    heroText->addWidget(eyebrow(tr("УМНОЕ ПОДКЛЮЧЕНИЕ"), hero));
+    auto *heroTitle = new QLabel(tr("Один клик — и всё работает"), hero);
     heroTitle->setObjectName(QStringLiteral("sectionTitle"));
-    auto *heroHint = new QLabel(tr("Российские сайты идут напрямую. Заблокированные сервисы — через VPN."), hero);
+    heroTitle->setWordWrap(true);
+    auto *heroHint = new QLabel(
+        tr("Российские сервисы идут напрямую, нужные приложения — через VPN."), hero);
     heroHint->setObjectName(QStringLiteral("muted"));
     heroHint->setWordWrap(true);
-    m_activeServer = new QLabel(tr("Сервер: авто, самый быстрый"), hero);
+    m_activeServer = new QLabel(tr("Авто • самый быстрый сервер"), hero);
     m_activeServer->setObjectName(QStringLiteral("serverLabel"));
+    m_activeServer->setWordWrap(true);
     heroText->addWidget(heroTitle);
     heroText->addWidget(heroHint);
-    heroText->addSpacing(10);
+    heroText->addSpacing(4);
     heroText->addWidget(m_activeServer);
-    heroText->addStretch();
     heroLayout->addLayout(heroText, 1);
 
-    m_connectButton = new QPushButton(tr("ПОДКЛЮЧИТЬ"), hero);
+    m_connectButton = new QPushButton(tr("Подключить"), hero);
     m_connectButton->setObjectName(QStringLiteral("connectButton"));
     m_connectButton->setCursor(Qt::PointingHandCursor);
-    m_connectButton->setFixedSize(176, 176);
+    m_connectButton->setMinimumWidth(168);
+    m_connectButton->setFixedHeight(52);
     connect(m_connectButton, &QPushButton::clicked, this, [this] {
         emit connectionToggled(!m_connected);
     });
-    heroLayout->addWidget(m_connectButton, 0, Qt::AlignCenter);
+    heroLayout->addWidget(m_connectButton, 0, Qt::AlignVCenter);
     root->addWidget(hero);
 
-    auto *row = new QHBoxLayout;
-    row->setSpacing(18);
+    m_cardsLayout = new QGridLayout;
+    m_cardsLayout->setContentsMargins(0, 0, 0, 0);
+    m_cardsLayout->setHorizontalSpacing(14);
+    m_cardsLayout->setVerticalSpacing(14);
 
-    auto *connectionCard = card(page);
-    auto *connectionLayout = new QVBoxLayout(connectionCard);
-    connectionLayout->setContentsMargins(22, 20, 22, 20);
-    connectionLayout->setSpacing(12);
-    auto *connectionTitle = new QLabel(tr("Подключение"), connectionCard);
+    m_connectionCard = card(page);
+    auto *connectionLayout = new QVBoxLayout(m_connectionCard);
+    connectionLayout->setContentsMargins(20, 18, 20, 18);
+    connectionLayout->setSpacing(11);
+    connectionLayout->addWidget(eyebrow(tr("КАНАЛ"), m_connectionCard));
+    auto *connectionTitle = new QLabel(tr("Подключение"), m_connectionCard);
     connectionTitle->setObjectName(QStringLiteral("cardTitle"));
     connectionLayout->addWidget(connectionTitle);
 
     auto *modeRow = new QHBoxLayout;
-    m_tunButton = secondaryButton(QStringLiteral("TUN"), connectionCard);
-    m_proxyButton = secondaryButton(tr("Системный прокси"), connectionCard);
+    modeRow->setSpacing(8);
+    m_tunButton = secondaryButton(QStringLiteral("TUN"), m_connectionCard);
+    m_proxyButton = secondaryButton(tr("Системный прокси"), m_connectionCard);
     m_tunButton->setCheckable(true);
     m_proxyButton->setCheckable(true);
     auto *modeGroup = new QButtonGroup(this);
@@ -125,66 +155,85 @@ QuattroDashboard::QuattroDashboard(QWidget *parent) : QWidget(parent) {
     connect(m_tunButton, &QPushButton::clicked, this, [this] { emit modeChanged(Mode::Tun); });
     connect(m_proxyButton, &QPushButton::clicked, this, [this] { emit modeChanged(Mode::SystemProxy); });
 
-    auto *serverCaption = new QLabel(tr("Сервер"), connectionCard);
+    auto *serverCaption = new QLabel(tr("Сервер"), m_connectionCard);
     serverCaption->setObjectName(QStringLiteral("fieldLabel"));
-    m_profiles = new QComboBox(connectionCard);
+    m_profiles = new QComboBox(m_connectionCard);
+    m_profiles->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     connect(m_profiles, &QComboBox::currentIndexChanged, this, [this](int index) {
         if (index >= 0) emit profileChanged(m_profiles->itemData(index).toInt());
     });
     connectionLayout->addWidget(serverCaption);
     connectionLayout->addWidget(m_profiles);
-    row->addWidget(connectionCard, 1);
 
-    auto *routingCard = card(page);
-    auto *routingLayout = new QVBoxLayout(routingCard);
-    routingLayout->setContentsMargins(22, 20, 22, 20);
-    routingLayout->setSpacing(12);
-    auto *routingTitle = new QLabel(tr("Маршрутизация"), routingCard);
+    m_routingCard = card(page);
+    auto *routingLayout = new QVBoxLayout(m_routingCard);
+    routingLayout->setContentsMargins(20, 18, 20, 18);
+    routingLayout->setSpacing(9);
+    routingLayout->addWidget(eyebrow(tr("ПРАВИЛА"), m_routingCard));
+    auto *routingTitle = new QLabel(tr("Маршрутизация"), m_routingCard);
     routingTitle->setObjectName(QStringLiteral("cardTitle"));
     routingLayout->addWidget(routingTitle);
-    m_russiaBypass = new QCheckBox(tr("Russia Bypass"), routingCard);
+    m_russiaBypass = new QCheckBox(tr("Russia Bypass"), m_routingCard);
     m_russiaBypass->setToolTip(tr("Российские домены и IP идут напрямую"));
-    m_autoStart = new QCheckBox(tr("Запускать и подключать при входе"), routingCard);
-    m_autoStart->setToolTip(tr("Quattro запустится свёрнутым в трей и восстановит выбранный режим и сервер"));
+    m_autoStart = new QCheckBox(tr("Автозапуск и подключение"), m_routingCard);
+    m_autoStart->setToolTip(tr("Quattro запустится в трее и восстановит режим и сервер"));
     routingLayout->addWidget(m_russiaBypass);
     routingLayout->addWidget(m_autoStart);
-    auto *channels = secondaryButton(tr("Каналы приложений"), routingCard);
-    auto *routes = secondaryButton(tr("Правила и исключения"), routingCard);
-    routingLayout->addWidget(channels);
-    routingLayout->addWidget(routes);
+    auto *routingButtons = new QHBoxLayout;
+    routingButtons->setSpacing(8);
+    auto *channels = secondaryButton(tr("Каналы"), m_routingCard);
+    auto *routes = secondaryButton(tr("Исключения"), m_routingCard);
+    routingButtons->addWidget(channels);
+    routingButtons->addWidget(routes);
+    routingLayout->addLayout(routingButtons);
     connect(m_russiaBypass, &QCheckBox::toggled, this, &QuattroDashboard::russiaBypassChanged);
     connect(m_autoStart, &QCheckBox::toggled, this, &QuattroDashboard::autoStartChanged);
     connect(channels, &QPushButton::clicked, this, &QuattroDashboard::channelsRequested);
     connect(routes, &QPushButton::clicked, this, &QuattroDashboard::routingRequested);
-    row->addWidget(routingCard, 1);
-    root->addLayout(row);
+
+    m_cardsLayout->addWidget(m_connectionCard, 0, 0);
+    m_cardsLayout->addWidget(m_routingCard, 0, 1);
+    m_cardsLayout->setColumnStretch(0, 1);
+    m_cardsLayout->setColumnStretch(1, 1);
+    root->addLayout(m_cardsLayout);
 
     auto *subCard = card(page);
-    auto *subLayout = new QGridLayout(subCard);
-    subLayout->setContentsMargins(22, 16, 22, 16);
+    auto *subLayout = new QVBoxLayout(subCard);
+    subLayout->setContentsMargins(20, 17, 20, 17);
     subLayout->setSpacing(10);
+    auto *subHead = new QHBoxLayout;
     auto *subText = new QVBoxLayout;
+    subText->setSpacing(2);
     auto *subTitle = new QLabel(tr("Подписка Quattro"), subCard);
     subTitle->setObjectName(QStringLiteral("cardTitle"));
-    auto *subHint = new QLabel(tr("Вставь ссылку один раз — список серверов будет обновляться автоматически."), subCard);
+    auto *subHint = new QLabel(tr("Вставьте ссылку один раз — серверы обновятся автоматически."), subCard);
     subHint->setObjectName(QStringLiteral("muted"));
+    subHint->setWordWrap(true);
     subText->addWidget(subTitle);
     subText->addWidget(subHint);
-    subLayout->addLayout(subText, 0, 0);
+    subHead->addLayout(subText, 1);
+    m_subscriptionStatus = new QLabel(subCard);
+    m_subscriptionStatus->setObjectName(QStringLiteral("statusBadge"));
+    m_subscriptionStatus->setWordWrap(true);
+    subHead->addWidget(m_subscriptionStatus, 0, Qt::AlignTop);
+    subLayout->addLayout(subHead);
+
+    m_subscriptionActions = new QGridLayout;
+    m_subscriptionActions->setContentsMargins(0, 0, 0, 0);
+    m_subscriptionActions->setHorizontalSpacing(8);
+    m_subscriptionActions->setVerticalSpacing(8);
     m_subscription = new QLineEdit(subCard);
     m_subscription->setPlaceholderText(QStringLiteral("https://auth.quattro-cloud.ru/…"));
     m_subscription->setEchoMode(QLineEdit::PasswordEchoOnEdit);
-    m_subscription->setMinimumWidth(300);
-    subLayout->addWidget(m_subscription, 0, 1);
+    m_subscription->setMinimumWidth(0);
     m_subscriptionSave = new QPushButton(tr("Добавить"), subCard);
     m_subscriptionSave->setObjectName(QStringLiteral("primaryButton"));
     m_subscriptionRefresh = secondaryButton(tr("Обновить"), subCard);
-    subLayout->addWidget(m_subscriptionSave, 0, 2);
-    subLayout->addWidget(m_subscriptionRefresh, 0, 3);
-    m_subscriptionStatus = new QLabel(subCard);
-    m_subscriptionStatus->setObjectName(QStringLiteral("muted"));
-    m_subscriptionStatus->setWordWrap(true);
-    subLayout->addWidget(m_subscriptionStatus, 1, 1, 1, 3);
+    m_subscriptionActions->addWidget(m_subscription, 0, 0);
+    m_subscriptionActions->addWidget(m_subscriptionSave, 0, 1);
+    m_subscriptionActions->addWidget(m_subscriptionRefresh, 0, 2);
+    m_subscriptionActions->setColumnStretch(0, 1);
+    subLayout->addLayout(m_subscriptionActions);
     connect(m_subscriptionSave, &QPushButton::clicked, this, [this] {
         emit subscriptionSubmitted(m_subscription->text().trimmed());
     });
@@ -192,56 +241,165 @@ QuattroDashboard::QuattroDashboard(QWidget *parent) : QWidget(parent) {
     connect(m_subscriptionRefresh, &QPushButton::clicked, this, &QuattroDashboard::subscriptionRefreshRequested);
     root->addWidget(subCard);
 
-    auto *footer = new QHBoxLayout;
-    auto *engine = new QLabel(tr("Quattro engine • sing-box"), page);
-    engine->setObjectName(QStringLiteral("muted"));
-    footer->addWidget(engine);
-    footer->addStretch();
+    m_footerLayout = new QHBoxLayout;
+    m_footerLayout->setSpacing(8);
+    m_footerEngine = new QLabel(tr("Quattro engine • sing-box"), page);
+    m_footerEngine->setObjectName(QStringLiteral("muted"));
+    m_footerLayout->addWidget(m_footerEngine);
+    m_footerLayout->addStretch();
     auto *settings = secondaryButton(tr("Настройки"), page);
+    settings->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
     auto *advanced = secondaryButton(tr("Расширенный режим"), page);
-    footer->addWidget(settings);
-    footer->addWidget(advanced);
+    advanced->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
+    m_footerLayout->addWidget(settings);
+    m_footerLayout->addWidget(advanced);
     connect(settings, &QPushButton::clicked, this, &QuattroDashboard::settingsRequested);
     connect(advanced, &QPushButton::clicked, this, &QuattroDashboard::advancedRequested);
-    root->addLayout(footer);
+    root->addLayout(m_footerLayout);
 
     auto *scroll = new QScrollArea(this);
+    scroll->setObjectName(QStringLiteral("dashboardScroll"));
     scroll->setWidgetResizable(true);
     scroll->setFrameShape(QFrame::NoFrame);
+    scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    scroll->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     scroll->setWidget(page);
     auto *outer = new QVBoxLayout(this);
     outer->setContentsMargins(0, 0, 0, 0);
     outer->addWidget(scroll);
 
     setStyleSheet(QStringLiteral(R"qss(
-        QWidget#quattroDashboard, QWidget#quattroDashboard QScrollArea, QWidget#quattroDashboard QScrollArea > QWidget > QWidget {
-            background: #f3f4f6; color: #111317; font-family: "Segoe UI"; font-size: 14px;
+        QWidget#quattroDashboard, QWidget#dashboardPage, QScrollArea#dashboardScroll,
+        QScrollArea#dashboardScroll > QWidget > QWidget {
+            background: #141a23;
+            color: #f5f7fb;
+            font-family: "Segoe UI Variable Text", "Segoe UI";
+            font-size: 14px;
         }
-        QFrame#card { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 18px; }
-        QFrame#statusPill { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 15px; }
-        QLabel#brandTitle { font-size: 25px; font-weight: 800; letter-spacing: 2px; }
-        QLabel#sectionTitle { font-size: 24px; font-weight: 700; }
-        QLabel#cardTitle { font-size: 16px; font-weight: 700; }
-        QLabel#fieldLabel { font-size: 12px; color: #6b7280; }
-        QLabel#muted { color: #6b7280; }
-        QLabel#serverLabel { color: #111317; font-weight: 600; }
-        QLabel#statusDot { color: #9ca3af; }
-        QPushButton { min-height: 38px; border-radius: 10px; padding: 0 14px; }
-        QPushButton[kind="secondary"] { background: #f3f4f6; border: 1px solid #e5e7eb; color: #22252a; }
-        QPushButton[kind="secondary"]:hover { background: #e9eaed; }
-        QPushButton[kind="secondary"]:checked { background: #111317; border-color: #111317; color: #ffffff; }
-        QPushButton#primaryButton { background: #ef1717; border: none; color: #ffffff; font-weight: 700; }
-        QPushButton#primaryButton:hover { background: #d80e0e; }
-        QPushButton#connectButton { background: #111317; border: 10px solid #eef0f2; border-radius: 88px; color: #ffffff; font-size: 15px; font-weight: 800; }
-        QPushButton#connectButton:hover { background: #20242a; border-color: #ffe2e2; }
-        QPushButton#connectButton[connected="true"] { background: #ef1717; border-color: #ffe2e2; }
-        QLineEdit, QComboBox { min-height: 38px; background: #f8f9fa; border: 1px solid #dfe2e6; border-radius: 10px; padding: 0 12px; }
-        QComboBox::drop-down { border: none; width: 26px; }
-        QCheckBox { min-height: 28px; spacing: 9px; }
+        QFrame#card, QFrame#headerCard {
+            background: #1b222c;
+            border: 1px solid #303946;
+            border-radius: 12px;
+        }
+        QFrame#headerCard { background: #171e27; }
+        QFrame#heroCard {
+            background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                                        stop:0 #202633, stop:1 #19232d);
+            border: 1px solid #34404d;
+            border-radius: 14px;
+        }
+        QFrame#statusPill {
+            background: #202833;
+            border: 1px solid #3a4553;
+            border-radius: 15px;
+        }
+        QLabel#brandTitle { color: #ffffff; font-size: 21px; font-weight: 750; }
+        QLabel#sectionTitle { color: #ffffff; font-size: 25px; font-weight: 750; }
+        QLabel#cardTitle { color: #f7f9fc; font-size: 17px; font-weight: 700; }
+        QLabel#eyebrow { color: #58d8e8; font-size: 11px; font-weight: 700; letter-spacing: 1px; }
+        QLabel#fieldLabel { color: #9ca6b4; font-size: 12px; }
+        QLabel#muted { color: #aeb6c2; }
+        QLabel#serverLabel { color: #67dce9; font-weight: 650; }
+        QLabel#statusDot { color: #697586; }
+        QLabel#statusText { color: #e8ecf2; font-weight: 650; }
+        QLabel#statusBadge { color: #67dce9; font-size: 12px; font-weight: 600; }
+        QPushButton {
+            min-height: 40px;
+            border-radius: 9px;
+            padding: 0 14px;
+            font-weight: 650;
+        }
+        QPushButton[kind="secondary"] {
+            background: #222a35;
+            border: 1px solid #3a4553;
+            color: #e5eaf0;
+        }
+        QPushButton[kind="secondary"]:hover { background: #293442; border-color: #5a6879; }
+        QPushButton[kind="secondary"]:checked {
+            background: #173c48;
+            border-color: #35c7dc;
+            color: #72e6f3;
+        }
+        QPushButton#primaryButton {
+            background: #17424d;
+            border: 1px solid #2bbfd4;
+            color: #6ce2ef;
+        }
+        QPushButton#primaryButton:hover { background: #1d515d; }
+        QPushButton#connectButton {
+            background: #f0443e;
+            border: 1px solid #ff6a64;
+            color: #ffffff;
+            font-size: 15px;
+            font-weight: 750;
+        }
+        QPushButton#connectButton:hover { background: #ff514a; }
+        QPushButton#connectButton:disabled { background: #343b46; border-color: #49515d; color: #858e9b; }
+        QPushButton#connectButton[connected="true"] {
+            background: #173d31;
+            border-color: #2ac681;
+            color: #68e5aa;
+        }
+        QLineEdit, QComboBox {
+            min-height: 40px;
+            background: #151b24;
+            border: 1px solid #3a4553;
+            border-radius: 9px;
+            padding: 0 12px;
+            color: #f4f6f9;
+            selection-background-color: #1f8291;
+        }
+        QLineEdit:focus, QComboBox:focus { border-color: #3bd0e3; }
+        QLineEdit:disabled, QComboBox:disabled { color: #727d8b; background: #191f28; }
+        QComboBox::drop-down { border: none; width: 28px; }
+        QComboBox QAbstractItemView {
+            background: #1b222c;
+            color: #f5f7fb;
+            border: 1px solid #3a4553;
+            selection-background-color: #17424d;
+        }
+        QCheckBox { min-height: 27px; spacing: 9px; color: #e4e8ee; }
+        QScrollBar:vertical { background: #141a23; width: 8px; margin: 2px; }
+        QScrollBar::handle:vertical { background: #3d4856; border-radius: 4px; min-height: 28px; }
+        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
     )qss"));
 
     setMode(Mode::Tun);
     setConnectionState(false, tr("Отключено"));
+    applyResponsiveLayout(true);
+}
+
+void QuattroDashboard::resizeEvent(QResizeEvent *event) {
+    QWidget::resizeEvent(event);
+    applyResponsiveLayout();
+}
+
+void QuattroDashboard::applyResponsiveLayout(bool force) {
+    const bool compact = width() < 780;
+    if (!force && compact == m_compactLayout) return;
+    m_compactLayout = compact;
+
+    m_cardsLayout->removeWidget(m_connectionCard);
+    m_cardsLayout->removeWidget(m_routingCard);
+    m_subscriptionActions->removeWidget(m_subscription);
+    m_subscriptionActions->removeWidget(m_subscriptionSave);
+    m_subscriptionActions->removeWidget(m_subscriptionRefresh);
+
+    if (compact) {
+        m_cardsLayout->addWidget(m_connectionCard, 0, 0, 1, 2);
+        m_cardsLayout->addWidget(m_routingCard, 1, 0, 1, 2);
+        m_subscriptionActions->addWidget(m_subscription, 0, 0, 1, 2);
+        m_subscriptionActions->addWidget(m_subscriptionSave, 1, 0);
+        m_subscriptionActions->addWidget(m_subscriptionRefresh, 1, 1);
+        m_footerEngine->hide();
+    } else {
+        m_cardsLayout->addWidget(m_connectionCard, 0, 0);
+        m_cardsLayout->addWidget(m_routingCard, 0, 1);
+        m_subscriptionActions->addWidget(m_subscription, 0, 0);
+        m_subscriptionActions->addWidget(m_subscriptionSave, 0, 1);
+        m_subscriptionActions->addWidget(m_subscriptionRefresh, 0, 2);
+        m_footerEngine->show();
+    }
 }
 
 void QuattroDashboard::setConnectionState(bool connected, const QString &status, const QString &server,
@@ -249,13 +407,15 @@ void QuattroDashboard::setConnectionState(bool connected, const QString &status,
     m_connected = connected;
     m_transitioning = transitioning;
     m_statusText->setText(status);
-    m_statusDot->setStyleSheet(connected ? QStringLiteral("color:#18a957") : QStringLiteral("color:#9ca3af"));
-    m_connectButton->setText(transitioning ? status.toUpper()
-                                          : connected ? tr("ОТКЛЮЧИТЬ") : tr("ПОДКЛЮЧИТЬ"));
+    m_statusDot->setStyleSheet(connected ? QStringLiteral("color:#35d08a")
+                                         : QStringLiteral("color:#697586"));
+    m_connectButton->setText(transitioning ? status
+                                          : connected ? tr("Отключить") : tr("Подключить"));
     m_connectButton->setProperty("connected", connected);
     m_connectButton->style()->unpolish(m_connectButton);
     m_connectButton->style()->polish(m_connectButton);
-    m_activeServer->setText(server.isEmpty() ? tr("Сервер: авто, самый быстрый") : tr("Сервер: %1").arg(server));
+    m_activeServer->setText(server.isEmpty() ? tr("Авто • самый быстрый сервер")
+                                             : tr("Сервер • %1").arg(server));
     updateConnectionButton();
 }
 

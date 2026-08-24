@@ -4,9 +4,13 @@
 
 class QCheckBox;
 class QComboBox;
+class QFrame;
+class QGridLayout;
+class QHBoxLayout;
 class QLabel;
 class QLineEdit;
 class QPushButton;
+class QResizeEvent;
 
 class QuattroDashboard final : public QWidget {
     Q_OBJECT
@@ -40,6 +44,8 @@ signals:
     void advancedRequested();
 
 private:
+    void resizeEvent(QResizeEvent *event) override;
+
     bool m_connected = false;
     QLabel *m_statusDot = nullptr;
     QLabel *m_statusText = nullptr;
@@ -54,9 +60,17 @@ private:
     QPushButton *m_proxyButton = nullptr;
     QCheckBox *m_russiaBypass = nullptr;
     QCheckBox *m_autoStart = nullptr;
+    QFrame *m_connectionCard = nullptr;
+    QFrame *m_routingCard = nullptr;
+    QGridLayout *m_cardsLayout = nullptr;
+    QGridLayout *m_subscriptionActions = nullptr;
+    QHBoxLayout *m_footerLayout = nullptr;
+    QLabel *m_footerEngine = nullptr;
     bool m_hasProfiles = false;
     bool m_transitioning = false;
+    bool m_compactLayout = false;
 
     void applyModeStyle();
+    void applyResponsiveLayout(bool force = false);
     void updateConnectionButton();
 };

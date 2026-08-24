@@ -83,6 +83,15 @@ CMakeLists.txt.user*
 /tools/go/
 /tools/go-cache/
 /tools/go-mod-cache/
+/tools/downloads/
+/tools/dashboard-src/
+/tools/Qt/
+/tools/openssl/
+/tools/protoc/
+/tools/ninja.exe
+/res/dashboard/*
+!/res/dashboard/.gitkeep
+/runtime-test/
 /res/Quattro.icns
 /Quattro.zip
 /Quattro.zip.sha256
