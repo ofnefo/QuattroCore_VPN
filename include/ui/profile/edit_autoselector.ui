@@ -434,7 +434,7 @@
          <item row="0" column="1">
           <widget class="QSpinBox" name="tolerance">
            <property name="maximum">
-            <number>10000</number>
+            <number>65000</number>
            </property>
            <property name="suffix">
             <string> ms</string>

@@ -16,11 +16,14 @@ public:
 
     explicit QuattroDashboard(QWidget *parent = nullptr);
 
-    void setConnectionState(bool connected, const QString &status, const QString &server = {});
+    void setConnectionState(bool connected, const QString &status, const QString &server = {},
+                            bool transitioning = false);
     void setProfiles(const QList<QPair<int, QString>> &profiles, int selectedId, bool includeAuto = true);
+    void setSelectedProfile(int profileId);
     void setMode(Mode mode);
     void setRussiaBypass(bool enabled);
     void setAutoStart(bool enabled);
+    void setSubscriptionState(bool busy, const QString &message = {});
     QString subscriptionUrl() const;
 
 signals:
@@ -43,11 +46,17 @@ private:
     QLabel *m_activeServer = nullptr;
     QPushButton *m_connectButton = nullptr;
     QLineEdit *m_subscription = nullptr;
+    QLabel *m_subscriptionStatus = nullptr;
+    QPushButton *m_subscriptionSave = nullptr;
+    QPushButton *m_subscriptionRefresh = nullptr;
     QComboBox *m_profiles = nullptr;
     QPushButton *m_tunButton = nullptr;
     QPushButton *m_proxyButton = nullptr;
     QCheckBox *m_russiaBypass = nullptr;
     QCheckBox *m_autoStart = nullptr;
+    bool m_hasProfiles = false;
+    bool m_transitioning = false;
 
     void applyModeStyle();
+    void updateConnectionButton();
 };

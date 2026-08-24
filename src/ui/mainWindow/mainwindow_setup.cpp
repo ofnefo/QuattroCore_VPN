@@ -708,17 +708,36 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     tray->setIcon(GetTrayIcon(Icon::NONE));
     QApplication::setWindowIcon(Icon::GetTrayIcon(Icon::NONE));
     trayMenu = new QMenu();
+    ui->actionShow_window->setText(tr("Открыть Quattro"));
+    ui->actionStart_with_system->setText(tr("Запускать с Windows"));
+    ui->actionRemember_last_proxy->setText(tr("Восстанавливать подключение"));
     trayMenu->addAction(ui->actionShow_window);
+    auto *actConnection = new QAction(tr("Подключить"), trayMenu);
+    connect(actConnection, &QAction::triggered, this, [this] {
+        if (running) {
+            profile_stop(false, false, true);
+            return;
+        }
+        const int id = quattroSelectedProfileId < 0 ? ensureQuattroAutoSelector()
+                                                    : quattroSelectedProfileId;
+        if (id < 0) {
+            MessageBoxWarning(tr("Quattro"), tr("Сначала добавьте подписку и дождитесь списка серверов."));
+            ActivateWindow(this);
+            return;
+        }
+        profile_start(id);
+    });
+    trayMenu->addAction(actConnection);
     trayMenu->addSeparator();
     trayMenu->addAction(ui->actionStart_with_system);
     trayMenu->addAction(ui->actionRemember_last_proxy);
     trayMenu->addAction(ui->actionAllow_LAN);
     trayMenu->addSeparator();
 
-    auto *actSelectServer = new QAction(tr("Select Profile"), trayMenu);
+    auto *actSelectServer = new QAction(tr("Выбрать сервер…"), trayMenu);
     connect(actSelectServer, &QAction::triggered, this, [this]() { openTraySelector(false); });
     trayMenu->addAction(actSelectServer);
-    auto *actSelectRouting = new QAction(tr("Select Routing"), trayMenu);
+    auto *actSelectRouting = new QAction(tr("Маршрутизация…"), trayMenu);
     connect(actSelectRouting, &QAction::triggered, this, [this]() { openTraySelector(true); });
     trayMenu->addAction(actSelectRouting);
     auto *actOtpCodes = new QAction(tr("OTP Codes"), trayMenu);
@@ -745,6 +764,14 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     trayMenu->addAction(ui->menu_exit);
     tray->setVisible(!Configs::dataManager->settingsRepo->disable_tray);
     tray->setContextMenu(trayMenu);
+    connect(trayMenu, &QMenu::aboutToShow, this, [this, actConnection] {
+        if (running) {
+            actConnection->setText(tr("Отключить — %1").arg(running->outbound->DisplayName()));
+        } else {
+            actConnection->setText(tr("Подключить"));
+        }
+        ui->actionRemember_last_proxy->setChecked(Configs::dataManager->settingsRepo->remember_enable);
+    });
     connect(tray, &QSystemTrayIcon::activated, qApp, [=, this](QSystemTrayIcon::ActivationReason reason) {
         if (reason == QSystemTrayIcon::Trigger && getOS() != Darwin) {
             trayClickEvent();
@@ -771,10 +798,12 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
         Configs::dataManager->settingsRepo->remember_enable = checked;
         ui->actionRemember_last_proxy->setChecked(checked);
         Configs::dataManager->settingsRepo->Save();
+        refreshQuattroDashboard();
     });
     connect(ui->actionStart_with_system, &QAction::triggered, this, [=,this](bool checked) {
         AutoRun_SetEnabled(checked);
-        ui->actionStart_with_system->setChecked(checked);
+        ui->actionStart_with_system->setChecked(AutoRun_IsEnabled());
+        refreshQuattroDashboard();
     });
     connect(ui->actionAllow_LAN, &QAction::triggered, this, [=,this](bool checked) {
         Configs::dataManager->settingsRepo->inbound_address = checked ? "::" : "127.0.0.1";

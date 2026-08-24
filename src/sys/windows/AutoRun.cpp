@@ -72,6 +72,7 @@ void enable_autorun() {
         "  <Actions Context=\"Author\">\n"
         "    <Exec>\n"
         "      <Command>\"%3\"</Command>\n"
+        "      <Arguments>-tray</Arguments>\n"
         "    </Exec>\n"
         "  </Actions>\n"
         "</Task>"
@@ -160,7 +161,8 @@ void AutoRun_FixTaskIfNeeded() {
         QString output = QString::fromLocal8Bit(process.readAllStandardOutput());
         if (!output.contains("xml")) return;
         bool privilegeIsStale = (runLevel == "HighestAvailable" && !output.contains("HighestAvailable")) || (runLevel == "LeastPrivilege" && output.contains("HighestAvailable"));
-        if (privilegeIsStale || autoRun_priorityIsStale(output)) AutoRun_SetEnabled(true);
+        const bool startupModeIsStale = !output.contains("<Arguments>-tray</Arguments>", Qt::CaseInsensitive);
+        if (privilegeIsStale || autoRun_priorityIsStale(output) || startupModeIsStale) AutoRun_SetEnabled(true);
     }
 }
 

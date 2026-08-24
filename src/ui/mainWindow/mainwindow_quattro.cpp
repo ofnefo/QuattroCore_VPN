@@ -6,6 +6,7 @@
 #include "include/database/RoutesRepo.h"
 #include "include/database/entities/RouteRule.h"
 #include "include/sys/AutoRun.hpp"
+#include "include/stats/autoselector/AutoSelectorMonitor.hpp"
 #include "include/ui/widget/QuattroDashboard.hpp"
 
 #include <QIcon>
@@ -59,8 +60,16 @@ void MainWindow::setupQuattroDashboard() {
             MessageBoxWarning(tr("Подписка Quattro"), tr("Сначала добавьте ссылку подписки."));
             return;
         }
+        quattroDashboard->setSubscriptionState(true, tr("Обновляю список серверов…"));
         Subscription::groupUpdater->AsyncUpdate(group->url, group->id, [this] {
-            runOnUiThread([this] { refreshQuattroDashboard(true); });
+            runOnUiThread([this] {
+                refreshQuattroDashboard(true);
+                const auto current = Configs::dataManager->groupsRepo->CurrentGroup();
+                const int count = current ? current->Profiles().size() : 0;
+                quattroDashboard->setSubscriptionState(
+                    false, count > 0 ? tr("Готово: %1 серверов").arg(count)
+                                     : tr("Серверы не получены. Проверьте ссылку и журнал."));
+            });
         }, true);
     });
     connect(quattroDashboard, &QuattroDashboard::modeChanged, this,
@@ -76,12 +85,15 @@ void MainWindow::setupQuattroDashboard() {
         refreshQuattroDashboard();
     });
     connect(quattroDashboard, &QuattroDashboard::profileChanged, this, [this](int id) {
+        if (id < -1) return;
         quattroSelectedProfileId = id;
+        const int targetId = id < 0 ? ensureQuattroAutoSelector() : id;
         auto &settings = Configs::dataManager->settingsRepo;
         if (settings->remember_enable) {
-            settings->remember_id = id < 0 ? ensureQuattroAutoSelector() : id;
+            settings->remember_id = targetId;
             settings->Save();
         }
+        if (running && targetId >= 0 && running->id != targetId) profile_start(targetId);
     });
     connect(quattroDashboard, &QuattroDashboard::connectionToggled, this, [this](bool connectNow) {
         if (!connectNow) {
@@ -108,14 +120,34 @@ void MainWindow::setupQuattroDashboard() {
             this, &MainWindow::setQuattroRussiaBypass);
     connect(quattroDashboard, &QuattroDashboard::autoStartChanged, this, [this](bool enabled) {
         auto &settings = Configs::dataManager->settingsRepo;
+        int rememberedId = settings->remember_id;
+        if (enabled) {
+            rememberedId = quattroSelectedProfileId < 0
+                               ? ensureQuattroAutoSelector()
+                               : quattroSelectedProfileId;
+            if (rememberedId < 0) {
+                quattroDashboard->setAutoStart(false);
+                MessageBoxWarning(tr("Автоподключение"), tr("Сначала добавьте подписку и дождитесь списка серверов."));
+                return;
+            }
+        }
         settings->remember_enable = enabled;
         if (enabled) {
-            settings->remember_id = quattroSelectedProfileId < 0
-                                        ? ensureQuattroAutoSelector()
-                                        : quattroSelectedProfileId;
+            settings->remember_id = rememberedId;
+            settings->remember_tun = quattroSelectedMode == static_cast<int>(QuattroDashboard::Mode::Tun);
+            settings->remember_system_proxy = !settings->remember_tun;
         }
         settings->Save();
         AutoRun_SetEnabled(enabled);
+        const bool active = enabled && AutoRun_IsEnabled();
+        if (enabled && !active) {
+            settings->remember_enable = false;
+            settings->Save();
+            MessageBoxWarning(tr("Автоподключение"), tr("Windows не разрешила создать задачу автозапуска."));
+        }
+        ui->actionStart_with_system->setChecked(active);
+        ui->actionRemember_last_proxy->setChecked(active);
+        quattroDashboard->setAutoStart(active);
     });
 
     refreshQuattroDashboard(true);
@@ -125,23 +157,34 @@ void MainWindow::refreshQuattroDashboard(bool reloadProfiles) {
     if (quattroDashboard == nullptr) return;
 
     const auto &settings = Configs::dataManager->settingsRepo;
-    const QString server = running ? running->outbound->DisplayName() : QString();
+    QString server = running ? running->outbound->DisplayName() : QString();
+    if (running && running->type == "autoselector") {
+        const auto selector = Stats::autoSelectorMonitor->Snapshot();
+        if (selector.valid && !selector.selectedName.isEmpty()) server = selector.selectedName;
+    }
     QString status;
     if (m_profileConnecting) status = tr("Подключение…");
     else if (m_profileDisconnecting) status = tr("Отключение…");
     else status = running ? tr("Подключено") : tr("Отключено");
-    quattroDashboard->setConnectionState(running != nullptr, status, server);
+    quattroDashboard->setConnectionState(running != nullptr, status, server,
+                                          m_profileConnecting || m_profileDisconnecting);
     const auto selectedMode = settings->spmode_system_proxy && !settings->spmode_vpn
                                   ? QuattroDashboard::Mode::SystemProxy
                                   : QuattroDashboard::Mode::Tun;
     quattroSelectedMode = static_cast<int>(selectedMode);
     quattroDashboard->setMode(selectedMode);
-    quattroDashboard->setAutoStart(settings->remember_enable);
+    quattroDashboard->setAutoStart(settings->remember_enable && ui->actionStart_with_system->isChecked());
 
     const auto route = Configs::dataManager->routesRepo->GetRouteProfile(settings->current_route_id);
     quattroDashboard->setRussiaBypass(route && route->name.contains("Russia", Qt::CaseInsensitive));
 
-    if (!reloadProfiles) return;
+    if (!reloadProfiles) {
+        if (running) {
+            quattroSelectedProfileId = running->type == "autoselector" ? -1 : running->id;
+            quattroDashboard->setSelectedProfile(quattroSelectedProfileId);
+        }
+        return;
+    }
     QList<QPair<int, QString>> items;
     const auto group = Configs::dataManager->groupsRepo->CurrentGroup();
     if (group) {
@@ -150,13 +193,21 @@ void MainWindow::refreshQuattroDashboard(bool reloadProfiles) {
             items << qMakePair(profile->id, profile->outbound->DisplayName());
         }
     }
-    int selected = quattroSelectedProfileId;
+    int selected = running ? (running->type == "autoselector" ? -1 : running->id)
+                           : quattroSelectedProfileId;
     if (selected < 0 && settings->remember_id >= 0) {
         const auto remembered = Configs::dataManager->profilesRepo->GetProfile(settings->remember_id);
         if (remembered && remembered->type != "autoselector") selected = remembered->id;
     }
     quattroSelectedProfileId = selected;
     quattroDashboard->setProfiles(items, selected);
+    if (group && !group->url.isEmpty()) {
+        quattroDashboard->setSubscriptionState(
+            false, items.isEmpty() ? tr("Подписка сохранена, но серверы пока не загружены")
+                                   : tr("Подписка активна • %1 серверов").arg(items.size()));
+    } else {
+        quattroDashboard->setSubscriptionState(false, tr("Вставьте ссылку Quattro, чтобы начать"));
+    }
 }
 
 void MainWindow::importQuattroSubscription(const QString &url) {
@@ -194,8 +245,16 @@ void MainWindow::importQuattroSubscription(const QString &url) {
     refresh_groups();
     show_group(group->id);
 
+    quattroDashboard->setSubscriptionState(true, tr("Проверяю подписку и загружаю серверы…"));
     Subscription::groupUpdater->AsyncUpdate(url, group->id, [this] {
-        runOnUiThread([this] { refreshQuattroDashboard(true); });
+        runOnUiThread([this] {
+            refreshQuattroDashboard(true);
+            const auto current = Configs::dataManager->groupsRepo->CurrentGroup();
+            const int count = current ? current->Profiles().size() : 0;
+            quattroDashboard->setSubscriptionState(
+                false, count > 0 ? tr("Готово: %1 серверов").arg(count)
+                                 : tr("Серверы не получены. Проверьте ссылку и журнал."));
+        });
     });
 }
 
@@ -204,7 +263,22 @@ int MainWindow::ensureQuattroAutoSelector() {
     if (!group || group->Profiles().isEmpty()) return -1;
 
     for (const auto &profile : Configs::dataManager->profilesRepo->GetProfileBatch(group->Profiles())) {
-        if (profile && profile->type == "autoselector") return profile->id;
+        if (profile && profile->type == "autoselector") {
+            auto *selector = profile->AutoSelector();
+            if (selector) {
+                // Pick the fastest member on start, then keep it while it is healthy.
+                // A very wide hysteresis prevents routine latency jitter from moving
+                // sessions; the core still fails over immediately when health drops.
+                selector->toleranceMs = 60000;
+                selector->watchIntervalSec = 15;
+                selector->expected = 3;
+                selector->balance = false;
+                selector->interruptOnSwitch = true;
+                selector->Normalize();
+                Configs::dataManager->profilesRepo->Save(profile);
+            }
+            return profile->id;
+        }
     }
 
     auto profile = Configs::ProfilesRepo::NewProfile(QStringLiteral("autoselector"));
@@ -219,7 +293,7 @@ int MainWindow::ensureQuattroAutoSelector() {
     selector->watchIntervalSec = 15;
     selector->expected = 3;
     selector->activeSize = 8;
-    selector->toleranceMs = 20;
+    selector->toleranceMs = 60000;
     selector->interruptOnSwitch = true;
     selector->balance = false;
     selector->Normalize();
@@ -229,34 +303,74 @@ int MainWindow::ensureQuattroAutoSelector() {
 
 void MainWindow::setQuattroRussiaBypass(bool enabled) {
     auto &settings = Configs::dataManager->settingsRepo;
-    if (!enabled) {
-        for (const auto &route : Configs::dataManager->routesRepo->GetAllRouteProfiles()) {
-            if (route && route->name.compare("Default", Qt::CaseInsensitive) == 0) {
-                settings->current_route_id = route->id;
-                settings->Save();
-                if (settings->started_id >= 0) profile_start(settings->started_id);
-                return;
-            }
+    const auto current = Configs::dataManager->routesRepo->GetRouteProfile(settings->current_route_id);
+    const bool hasChannels = current && current->name.startsWith(QStringLiteral("Quattro Channels"));
+    std::shared_ptr<Configs::RouteProfile> base;
+    for (const auto &route : Configs::dataManager->routesRepo->GetAllRouteProfiles()) {
+        if (!route || route->name.startsWith(QStringLiteral("Quattro Channels"))) continue;
+        const bool match = enabled ? route->name.contains("Russia", Qt::CaseInsensitive)
+                                   : route->name.compare("Default", Qt::CaseInsensitive) == 0;
+        if (match) {
+            base = route;
+            break;
         }
+    }
+
+    if (!base) {
+        if (enabled) {
+            MessageBoxWarning(tr("Russia Bypass"),
+                              tr("Профиль Bypass Russia ещё не установлен. Открою менеджер маршрутов — выберите Download Profiles → Russia один раз."));
+            on_menu_routing_settings_triggered();
+        } else {
+            MessageBoxWarning(tr("Russia Bypass"), tr("Не найден стандартный профиль маршрутизации Default."));
+        }
+        refreshQuattroDashboard();
         return;
     }
 
-    for (const auto &route : Configs::dataManager->routesRepo->GetAllRouteProfiles()) {
-        if (route && route->name.contains("Russia", Qt::CaseInsensitive)) {
-            settings->current_route_id = route->id;
-            settings->Save();
-            if (settings->started_id >= 0) profile_start(settings->started_id);
+    if (hasChannels) {
+        if (base->isRaw) {
+            MessageBoxWarning(tr("Russia Bypass"),
+                              tr("Этот профиль Russia использует необъединяемые raw-правила. Выберите другой профиль Russia в менеджере маршрутов."));
+            refreshQuattroDashboard();
             return;
         }
+        auto merged = std::make_shared<Configs::RouteProfile>(*base);
+        merged->id = current->id;
+        merged->name = enabled ? QStringLiteral("Quattro Channels · Bypass Russia")
+                               : QStringLiteral("Quattro Channels");
+        merged->isRemote = false;
+        merged->remoteURL.clear();
+        merged->autoUpdate = false;
+        QList<std::shared_ptr<Configs::RouteRule>> custom;
+        for (const auto &rule : current->Rules) {
+            if (rule && rule->name.startsWith(QStringLiteral("Quattro •")))
+                custom << std::make_shared<Configs::RouteRule>(*rule);
+        }
+        merged->Rules = custom + merged->Rules;
+        if (!Configs::dataManager->routesRepo->Save(merged)) {
+            MessageBoxWarning(tr("Russia Bypass"), tr("Не удалось сохранить объединённые правила маршрутизации."));
+            refreshQuattroDashboard();
+            return;
+        }
+        settings->current_route_id = merged->id;
+    } else {
+        settings->current_route_id = base->id;
     }
-
-    MessageBoxWarning(tr("Russia Bypass"),
-                      tr("Профиль Bypass Russia ещё не установлен. Открою менеджер маршрутов — выберите Download Profiles → Russia один раз."));
-    on_menu_routing_settings_triggered();
+    settings->Save();
+    if (settings->started_id >= 0) profile_start(settings->started_id);
     refreshQuattroDashboard();
 }
 
 void MainWindow::showQuattroChannels() {
+    const auto current = Configs::dataManager->routesRepo->GetRouteProfile(
+        Configs::dataManager->settingsRepo->current_route_id);
+    if (current && current->isRaw) {
+        MessageBoxWarning(tr("Каналы Quattro"),
+                          tr("Текущий raw-профиль нельзя безопасно объединить с каналами приложений. Выберите Default или структурированный Bypass Russia."));
+        return;
+    }
+
     QDialog dialog(this);
     dialog.setWindowTitle(tr("Каналы Quattro"));
     dialog.setMinimumWidth(520);
@@ -279,12 +393,31 @@ void MainWindow::showQuattroChannels() {
             googleServer->addItem(profile->outbound->DisplayName(), profile->id);
         }
     }
+    bool hadChannelSettings = false;
+    bool savedSteamDirect = false;
+    bool savedMinimaxDirect = false;
+    int savedGoogleServer = Configs::proxyID;
+    if (current && current->name.startsWith(QStringLiteral("Quattro Channels"))) {
+        for (const auto &rule : current->Rules) {
+            if (!rule || !rule->name.startsWith(QStringLiteral("Quattro •"))) continue;
+            hadChannelSettings = true;
+            if (rule->name == QStringLiteral("Quattro • Google geo channel"))
+                savedGoogleServer = rule->outboundID;
+            if (rule->domain_suffix.contains(QStringLiteral("steampowered.com")) ||
+                rule->process_name.contains(QStringLiteral("steam.exe")))
+                savedSteamDirect = true;
+            if (rule->domain_suffix.contains(QStringLiteral("minimax.io")))
+                savedMinimaxDirect = true;
+        }
+    }
+    const int googleIndex = googleServer->findData(savedGoogleServer);
+    if (googleIndex >= 0) googleServer->setCurrentIndex(googleIndex);
     layout->addRow(tr("Google / Gemini:"), googleServer);
 
     auto *steamDirect = new QCheckBox(tr("Steam — напрямую"), &dialog);
     auto *minimaxDirect = new QCheckBox(tr("Minimax — напрямую"), &dialog);
-    steamDirect->setChecked(true);
-    minimaxDirect->setChecked(true);
+    steamDirect->setChecked(hadChannelSettings ? savedSteamDirect : true);
+    minimaxDirect->setChecked(hadChannelSettings ? savedMinimaxDirect : true);
     layout->addRow(steamDirect);
     layout->addRow(minimaxDirect);
 
@@ -301,8 +434,6 @@ void MainWindow::showQuattroChannels() {
     layout->addRow(buttons);
     if (dialog.exec() != QDialog::Accepted) return;
 
-    const auto current = Configs::dataManager->routesRepo->GetRouteProfile(
-        Configs::dataManager->settingsRepo->current_route_id);
     const bool updateExisting = current && current->name.startsWith(QStringLiteral("Quattro Channels"));
     const bool inheritsRussiaBypass = current && current->name.contains("Russia", Qt::CaseInsensitive);
     auto channels = current ? std::make_shared<Configs::RouteProfile>(*current)

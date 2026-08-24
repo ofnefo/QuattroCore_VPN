@@ -4,6 +4,7 @@
 #include <QCheckBox>
 #include <QComboBox>
 #include <QFrame>
+#include <QGridLayout>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
@@ -143,7 +144,8 @@ QuattroDashboard::QuattroDashboard(QWidget *parent) : QWidget(parent) {
     routingLayout->addWidget(routingTitle);
     m_russiaBypass = new QCheckBox(tr("Russia Bypass"), routingCard);
     m_russiaBypass->setToolTip(tr("Российские домены и IP идут напрямую"));
-    m_autoStart = new QCheckBox(tr("Автоподключение при входе"), routingCard);
+    m_autoStart = new QCheckBox(tr("Запускать и подключать при входе"), routingCard);
+    m_autoStart->setToolTip(tr("Quattro запустится свёрнутым в трей и восстановит выбранный режим и сервер"));
     routingLayout->addWidget(m_russiaBypass);
     routingLayout->addWidget(m_autoStart);
     auto *channels = secondaryButton(tr("Каналы приложений"), routingCard);
@@ -158,7 +160,7 @@ QuattroDashboard::QuattroDashboard(QWidget *parent) : QWidget(parent) {
     root->addLayout(row);
 
     auto *subCard = card(page);
-    auto *subLayout = new QHBoxLayout(subCard);
+    auto *subLayout = new QGridLayout(subCard);
     subLayout->setContentsMargins(22, 16, 22, 16);
     subLayout->setSpacing(10);
     auto *subText = new QVBoxLayout;
@@ -168,22 +170,26 @@ QuattroDashboard::QuattroDashboard(QWidget *parent) : QWidget(parent) {
     subHint->setObjectName(QStringLiteral("muted"));
     subText->addWidget(subTitle);
     subText->addWidget(subHint);
-    subLayout->addLayout(subText, 1);
+    subLayout->addLayout(subText, 0, 0);
     m_subscription = new QLineEdit(subCard);
     m_subscription->setPlaceholderText(QStringLiteral("https://auth.quattro-cloud.ru/…"));
     m_subscription->setEchoMode(QLineEdit::PasswordEchoOnEdit);
     m_subscription->setMinimumWidth(300);
-    subLayout->addWidget(m_subscription, 2);
-    auto *save = new QPushButton(tr("Добавить"), subCard);
-    save->setObjectName(QStringLiteral("primaryButton"));
-    auto *refresh = secondaryButton(tr("Обновить"), subCard);
-    subLayout->addWidget(save);
-    subLayout->addWidget(refresh);
-    connect(save, &QPushButton::clicked, this, [this] {
+    subLayout->addWidget(m_subscription, 0, 1);
+    m_subscriptionSave = new QPushButton(tr("Добавить"), subCard);
+    m_subscriptionSave->setObjectName(QStringLiteral("primaryButton"));
+    m_subscriptionRefresh = secondaryButton(tr("Обновить"), subCard);
+    subLayout->addWidget(m_subscriptionSave, 0, 2);
+    subLayout->addWidget(m_subscriptionRefresh, 0, 3);
+    m_subscriptionStatus = new QLabel(subCard);
+    m_subscriptionStatus->setObjectName(QStringLiteral("muted"));
+    m_subscriptionStatus->setWordWrap(true);
+    subLayout->addWidget(m_subscriptionStatus, 1, 1, 1, 3);
+    connect(m_subscriptionSave, &QPushButton::clicked, this, [this] {
         emit subscriptionSubmitted(m_subscription->text().trimmed());
     });
-    connect(m_subscription, &QLineEdit::returnPressed, save, &QPushButton::click);
-    connect(refresh, &QPushButton::clicked, this, &QuattroDashboard::subscriptionRefreshRequested);
+    connect(m_subscription, &QLineEdit::returnPressed, m_subscriptionSave, &QPushButton::click);
+    connect(m_subscriptionRefresh, &QPushButton::clicked, this, &QuattroDashboard::subscriptionRefreshRequested);
     root->addWidget(subCard);
 
     auto *footer = new QHBoxLayout;
@@ -238,24 +244,41 @@ QuattroDashboard::QuattroDashboard(QWidget *parent) : QWidget(parent) {
     setConnectionState(false, tr("Отключено"));
 }
 
-void QuattroDashboard::setConnectionState(bool connected, const QString &status, const QString &server) {
+void QuattroDashboard::setConnectionState(bool connected, const QString &status, const QString &server,
+                                          bool transitioning) {
     m_connected = connected;
+    m_transitioning = transitioning;
     m_statusText->setText(status);
     m_statusDot->setStyleSheet(connected ? QStringLiteral("color:#18a957") : QStringLiteral("color:#9ca3af"));
-    m_connectButton->setText(connected ? tr("ОТКЛЮЧИТЬ") : tr("ПОДКЛЮЧИТЬ"));
+    m_connectButton->setText(transitioning ? status.toUpper()
+                                          : connected ? tr("ОТКЛЮЧИТЬ") : tr("ПОДКЛЮЧИТЬ"));
     m_connectButton->setProperty("connected", connected);
     m_connectButton->style()->unpolish(m_connectButton);
     m_connectButton->style()->polish(m_connectButton);
     m_activeServer->setText(server.isEmpty() ? tr("Сервер: авто, самый быстрый") : tr("Сервер: %1").arg(server));
+    updateConnectionButton();
 }
 
 void QuattroDashboard::setProfiles(const QList<QPair<int, QString>> &profiles, int selectedId, bool includeAuto) {
     const QSignalBlocker blocker(m_profiles);
     m_profiles->clear();
-    if (includeAuto) m_profiles->addItem(tr("Авто — быстрый + failover"), -1);
-    for (const auto &[id, name] : profiles) m_profiles->addItem(name, id);
+    m_hasProfiles = !profiles.isEmpty();
+    if (!m_hasProfiles) {
+        m_profiles->addItem(tr("Сначала добавьте подписку"), -2);
+    } else {
+        if (includeAuto) m_profiles->addItem(tr("Авто — быстрый, без скачков"), -1);
+        for (const auto &[id, name] : profiles) m_profiles->addItem(name, id);
+    }
     const int index = m_profiles->findData(selectedId);
     m_profiles->setCurrentIndex(index >= 0 ? index : 0);
+    m_profiles->setEnabled(m_hasProfiles);
+    updateConnectionButton();
+}
+
+void QuattroDashboard::setSelectedProfile(int profileId) {
+    const QSignalBlocker blocker(m_profiles);
+    const int index = m_profiles->findData(profileId);
+    if (index >= 0) m_profiles->setCurrentIndex(index);
 }
 
 void QuattroDashboard::setMode(Mode mode) {
@@ -276,6 +299,14 @@ void QuattroDashboard::setAutoStart(bool enabled) {
     m_autoStart->setChecked(enabled);
 }
 
+void QuattroDashboard::setSubscriptionState(bool busy, const QString &message) {
+    m_subscription->setEnabled(!busy);
+    m_subscriptionSave->setEnabled(!busy);
+    m_subscriptionRefresh->setEnabled(!busy);
+    m_subscriptionSave->setText(busy ? tr("Загрузка…") : tr("Добавить"));
+    m_subscriptionStatus->setText(message);
+}
+
 QString QuattroDashboard::subscriptionUrl() const { return m_subscription->text().trimmed(); }
 
 void QuattroDashboard::applyModeStyle() {
@@ -283,4 +314,8 @@ void QuattroDashboard::applyModeStyle() {
         button->style()->unpolish(button);
         button->style()->polish(button);
     }
+}
+
+void QuattroDashboard::updateConnectionButton() {
+    m_connectButton->setEnabled(!m_transitioning && (m_connected || m_hasProfiles));
 }

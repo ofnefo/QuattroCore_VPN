@@ -51,6 +51,8 @@ Release assets must follow the contract documented in [ARCHITECTURE.md](ARCHITEC
 
 Windows build notes are in [BUILD_QUATTRO_WINDOWS.md](BUILD_QUATTRO_WINDOWS.md). The complete release matrix is defined in [.github/workflows/build.yml](.github/workflows/build.yml).
 
+Every Windows release must pass the product and packaging checks in [QA_CHECKLIST.md](QA_CHECKLIST.md).
+
 ## Security
 
 Never commit subscription URLs, access tokens, private keys, generated configurations or user databases. See [SECURITY.md](SECURITY.md).
