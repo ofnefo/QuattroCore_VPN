@@ -70,7 +70,7 @@ Thumbs.db
 *.exe
 
 # Custom
-/Throne
+/Quattro
 /build
 CMakeLists.txt.user*
 /cmake-build-*
@@ -80,6 +80,21 @@ CMakeLists.txt.user*
 
 # Deploy
 /deployment
+/tools/go/
+/tools/go-cache/
+/tools/go-mod-cache/
+/res/Quattro.icns
+/Quattro.zip
+/Quattro.zip.sha256
+/Quattro_update/
+*.quattro-new
+QuattroUpdateError.log
+quattro.db*
+quattro_stats.db*
+*.pem
+*.key
+.env
+.env.*
 /neko*.sh
 /qtsdk
 

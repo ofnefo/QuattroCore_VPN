@@ -114,7 +114,7 @@ namespace Subscription {
     }
 
     // Convert a real Xray VLESS outbound (settings.vnext[0].address etc.) into
-    // the simplified shape Throne's xrayVless::ParseFromJson expects. Returns
+    // the simplified shape Quattro's xrayVless::ParseFromJson expects. Returns
     // an empty object if the input doesn't have the expected structure.
     QJsonObject normalizeXrayVlessForParse(const QJsonObject &out) {
         if (out["protocol"].toString() != "vless") return {};
@@ -307,8 +307,8 @@ namespace Subscription {
             ent->outbound->ParseFromJson(data);
         }
 
-        // throne://add/ deep link
-        if (str.startsWith("throne://add/", Qt::CaseInsensitive)) {
+        // quattro://add/ deep link
+        if (str.startsWith("quattro://add/", Qt::CaseInsensitive)) {
             auto link = QUrl(str);
             if (!link.isValid()) return;
             auto dataBytes = DecodeB64IfValid(link.path().mid(1));
@@ -640,14 +640,14 @@ namespace Subscription {
         // often relies on balancers and dialerProxy chains between its
         // outbounds, so it can't be flattened into individual proxies without
         // losing that logic. Import each as a CustomXrayFullConfig — the whole
-        // config runs verbatim as Throne's Xray instance behind a socks bridge.
+        // config runs verbatim as Quattro's Xray instance behind a socks bridge.
         if (type == XraySubType::configJsonArray) {
             for (const auto &c : doc.array()) {
                 if (!c.isObject()) continue;
                 auto cfg = c.toObject();
                 if (!cfg.contains("outbounds")) continue;
                 // Drop the subscription's own client inbounds (typically socks
-                // 10808 / http 10809). Throne injects its own bridge inbound at
+                // 10808 / http 10809). Quattro injects its own bridge inbound at
                 // build time and routes everything through it; the bundled
                 // inbounds are never in the traffic path and would only risk
                 // port-bind conflicts. Safe here because none of these configs'

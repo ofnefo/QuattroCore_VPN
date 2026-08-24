@@ -1,7 +1,7 @@
 package main
 
 import (
-	"ThroneCore/internal/boxdns"
+	"QuattroCore/internal/boxdns"
 	"encoding/json"
 	"runtime"
 	"sync/atomic"

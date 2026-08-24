@@ -1,7 +1,7 @@
 package main
 
 import (
-	"ThroneCore/gen"
+	"QuattroCore/gen"
 	"context"
 	"encoding/binary"
 	"fmt"

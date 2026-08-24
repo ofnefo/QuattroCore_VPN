@@ -11,7 +11,7 @@ namespace Configs {
     // Xray-style outbound domain strategy derived from the user's direct-DNS
     // strategy (e.g. "UseIP", "UseIPv4v6"). Defined in xrayStreamSetting.cpp;
     // passed to the core as LoadConfigReq.xray_outbound_dns_strategy so the live
-    // Xray instance resolves outbound server domains with it (ThroneWiring).
+    // Xray instance resolves outbound server domains with it (QuattroWiring).
     QString getXrayOutboundDomainStrategy();
 
     class xrayTLS : public baseConfig {

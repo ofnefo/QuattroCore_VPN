@@ -5,10 +5,10 @@ rm -rf $DEST
 mkdir -p $DEST
 
 #### copy binary ####
-cp $GITHUB_WORKSPACE/build/Throne $DEST
+cp $GITHUB_WORKSPACE/build/Quattro $DEST
 
-#### copy Throne.png ####
-cp $GITHUB_WORKSPACE/res/public/Throne.png $DEST
+#### copy Quattro.png ####
+cp $GITHUB_WORKSPACE/res/public/Quattro.png $DEST
 
 source "$(dirname "$0")/extract_core_artifact.sh"
 
@@ -21,7 +21,7 @@ chmod +x linuxdeploy-$ARCH.AppImage linuxdeploy-plugin-qt-$ARCH.AppImage
 
 export EXTRA_QT_PLUGINS="iconengines;wayland-shell-integration;wayland-decoration-client;"
 export EXTRA_PLATFORM_PLUGINS="libqwayland.so;"
-./linuxdeploy-$ARCH.AppImage --appdir $DEST --executable $DEST/Throne --plugin qt
+./linuxdeploy-$ARCH.AppImage --appdir $DEST --executable $DEST/Quattro --plugin qt
 rm linuxdeploy-$ARCH.AppImage linuxdeploy-plugin-qt-$ARCH.AppImage
 cd $DEST
 rm -r ./usr/translations ./usr/bin ./usr/share ./apprun-hooks
@@ -52,9 +52,9 @@ mv ./usr/lib2 ./usr/lib
 
 # fix lib rpath
 cd $DEST
-patchelf --set-rpath '$ORIGIN/usr/lib' ./Throne
+patchelf --set-rpath '$ORIGIN/usr/lib' ./Quattro
 
 # handle debug info
-objcopy --only-keep-debug $DEST/Throne $DEST/Throne.debug
-strip --strip-debug --strip-unneeded $DEST/Throne
-objcopy --add-gnu-debuglink=$DEST/Throne.debug $DEST/Throne
+objcopy --only-keep-debug $DEST/Quattro $DEST/Quattro.debug
+strip --strip-debug --strip-unneeded $DEST/Quattro
+objcopy --add-gnu-debuglink=$DEST/Quattro.debug $DEST/Quattro

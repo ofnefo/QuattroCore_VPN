@@ -86,7 +86,7 @@ namespace Configs
         bool static_challenge_echo = false;
         int mtu = 0;
         std::shared_ptr<OpenVPNTLS> tls = std::make_shared<OpenVPNTLS>();
-        // Throne-only, never sent to the core.
+        // Quattro-only, never sent to the core.
         int otp_profile_id = -1;
         bool only_advertised_routes = true;
         bool use_tunnel_dns = true;

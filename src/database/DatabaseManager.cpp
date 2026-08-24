@@ -13,7 +13,7 @@
 namespace Configs {
     std::string DatabaseManager::deriveStatsDbPath(const std::string& dbPath) {
         const QFileInfo fi(QString::fromStdString(dbPath));
-        return QDir(fi.absolutePath()).filePath("throne_stats.db").toStdString();
+        return QDir(fi.absolutePath()).filePath("quattro_stats.db").toStdString();
     }
 
     DatabaseManager::DatabaseManager(const std::string& dbPath)

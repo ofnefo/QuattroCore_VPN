@@ -5,17 +5,17 @@ rm -rf $DEST
 mkdir -p $DEST
 
 #### copy binary ####
-cp $GITHUB_WORKSPACE/build/Throne $DEST
+cp $GITHUB_WORKSPACE/build/Quattro $DEST
 
-#### copy Throne.png ####
-cp $GITHUB_WORKSPACE/res/public/Throne.png $DEST
+#### copy Quattro.png ####
+cp $GITHUB_WORKSPACE/res/public/Quattro.png $DEST
 
 #### copy Core ####
 source "$(dirname "$0")/extract_core_artifact.sh"
-cp deployment/${DEST_SUFFIX%-system-qt}/ThroneCore $DEST
+cp deployment/${DEST_SUFFIX%-system-qt}/QuattroCore $DEST
 rm -rf deployment/${DEST_SUFFIX%-system-qt}
 
 # handle debug info
-objcopy --only-keep-debug $DEST/Throne $DEST/Throne.debug
-strip --strip-debug --strip-unneeded $DEST/Throne
-objcopy --add-gnu-debuglink=$DEST/Throne.debug $DEST/Throne
+objcopy --only-keep-debug $DEST/Quattro $DEST/Quattro.debug
+strip --strip-debug --strip-unneeded $DEST/Quattro
+objcopy --add-gnu-debuglink=$DEST/Quattro.debug $DEST/Quattro

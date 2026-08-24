@@ -1,7 +1,7 @@
 package boxmain
 
 import (
-	"ThroneCore/internal/boxbox"
+	"QuattroCore/internal/boxbox"
 	"context"
 	"os"
 	"os/signal"

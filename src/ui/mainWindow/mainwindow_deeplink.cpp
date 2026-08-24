@@ -121,7 +121,7 @@ void MainWindow::importFromFiles(const QStringList &paths)
 
 void MainWindow::handle_deeplink_impl(const QString &url) {
     const QUrl u(url);
-    // QUrl lowercases the host, so "throne://AddSub/" arrives with host "addsub".
+    // QUrl lowercases the host, so "quattro://AddSub/" arrives with host "addsub".
     const QString cmd = u.host();
 
     if (cmd.compare("add", Qt::CaseInsensitive) == 0) {
@@ -251,7 +251,7 @@ void MainWindow::handle_addsub(const QString &url, const QString &name) {
 }
 
 void MainWindow::import_or_handle_deeplink(const QString &text) {
-    if (const QString trimmed = text.trimmed(); trimmed.startsWith("throne://")) {
+    if (const QString trimmed = text.trimmed(); trimmed.startsWith("quattro://")) {
         handle_deeplink_impl(trimmed);
         return;
     }
@@ -300,7 +300,7 @@ void MainWindow::dialog_message_impl(MwMessage cmd, const QStringList &args) {
         auto suggestRestartProxy = settings->Save();
         // Pick up any changed auto-update interval immediately instead of waiting for the
         // next poll (e.g. the user just enabled or shortened a job).
-        Throne::PeriodicRunner::instance()->CheckNow();
+        Quattro::PeriodicRunner::instance()->CheckNow();
         if (changed(MwArg::Route)) {
             settings->Save();
             suggestRestartProxy = true;

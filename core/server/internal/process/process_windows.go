@@ -53,7 +53,7 @@ func startChild(path string, args []string, noOut bool) (running, error) {
 var procCreateProcessWithTokenW = windows.NewLazySystemDLL("advapi32.dll").NewProc("CreateProcessWithTokenW")
 
 // startWithToken launches path+args under tok via CreateProcessWithTokenW, with
-// stdout/stderr funnelled into the Throne log and no console window.
+// stdout/stderr funnelled into the Quattro log and no console window.
 //
 // CreateProcessWithTokenW does not inherit arbitrary handles, but for a 64-bit
 // child the secondary-logon service still duplicates the three std handles into
@@ -330,7 +330,7 @@ func findProcess(name string) (uint32, error) {
 // unprivileged users lack, so an ordinary O_CREATE|O_EXCL temp file (the
 // default of os.CreateTemp) already creates a clean, un-hijackable file.
 func createSecureConfigFile() (*os.File, string, error) {
-	f, err := os.CreateTemp("", "throne-extra-*.conf")
+	f, err := os.CreateTemp("", "quattro-extra-*.conf")
 	if err != nil {
 		return nil, "", err
 	}

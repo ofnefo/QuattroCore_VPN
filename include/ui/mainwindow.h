@@ -53,6 +53,8 @@ class TrayProfileSelector;
 class TrayOtpCodes;
 class TestRunner;
 class DialogVpnAuth;
+class QuattroDashboard;
+class QStackedWidget;
 struct VpnAuthChallenge;
 
 namespace Qv2ray::ui { class SyntaxHighlighter; }
@@ -216,6 +218,11 @@ private slots:
 
 private:
     Ui::MainWindow *ui;
+    QuattroDashboard *quattroDashboard = nullptr;
+    QStackedWidget *quattroStack = nullptr;
+    QWidget *advancedCentralWidget = nullptr;
+    int quattroSelectedProfileId = -1;
+    int quattroSelectedMode = 0;
     QElapsedTimer sinceWindowDeactivated;
     ProfilesTableModel *profilesTableModel = nullptr;
 
@@ -383,6 +390,18 @@ private:
     void applyLogBrowserFont();
 
     void applyTopBarMetrics();
+
+    void setupQuattroDashboard();
+
+    void refreshQuattroDashboard(bool reloadProfiles = false);
+
+    void importQuattroSubscription(const QString &url);
+
+    int ensureQuattroAutoSelector();
+
+    void setQuattroRussiaBypass(bool enabled);
+
+    void showQuattroChannels();
 
     QSize designMinimumSize;
 

@@ -27,17 +27,17 @@ typedef BOOL(WINAPI *MINIDUMPWRITEDUMP)(
     CONST PMINIDUMP_CALLBACK_INFORMATION CallbackParam);
 
 #if defined(_M_ARM64) || defined(__aarch64__)
-#define THRONE_ARCH L"arm64"
-#define THRONE_ARCH_A "arm64"
+#define QUATTRO_ARCH L"arm64"
+#define QUATTRO_ARCH_A "arm64"
 #elif defined(_M_X64) || defined(__x86_64__)
-#define THRONE_ARCH L"amd64"
-#define THRONE_ARCH_A "amd64"
+#define QUATTRO_ARCH L"amd64"
+#define QUATTRO_ARCH_A "amd64"
 #elif defined(_M_IX86) || defined(__i386__)
-#define THRONE_ARCH L"386"
-#define THRONE_ARCH_A "386"
+#define QUATTRO_ARCH L"386"
+#define QUATTRO_ARCH_A "386"
 #else
-#define THRONE_ARCH L"unknown"
-#define THRONE_ARCH_A "unknown"
+#define QUATTRO_ARCH L"unknown"
+#define QUATTRO_ARCH_A "unknown"
 #endif
 
 // IndirectlyReferencedMemory is what makes objects on the stacks readable;
@@ -51,14 +51,14 @@ static const MINIDUMP_TYPE DUMP_TYPE = static_cast<MINIDUMP_TYPE>(
     MiniDumpWithProcessThreadData);
 
 // Failures that reach us with no SEH record get a synthesized one carrying these.
-#define THRONE_EXC_TERMINATE    0xE0544501
-#define THRONE_EXC_PURECALL     0xE0544502
-#define THRONE_EXC_INVALIDPARAM 0xE0544503
-#define THRONE_EXC_ABORT        0xE0544504
-#define THRONE_EXC_NEWFAIL      0xE0544505
+#define QUATTRO_EXC_TERMINATE    0xE0544501
+#define QUATTRO_EXC_PURECALL     0xE0544502
+#define QUATTRO_EXC_INVALIDPARAM 0xE0544503
+#define QUATTRO_EXC_ABORT        0xE0544504
+#define QUATTRO_EXC_NEWFAIL      0xE0544505
 
 // Streams at or above LastReservedStream are free for application use.
-static const ULONG32 THRONE_LOG_STREAM = 0x10000;
+static const ULONG32 QUATTRO_LOG_STREAM = 0x10000;
 
 static wchar_t g_dumpPathTemplate[MAX_PATH] = L"";
 static bool g_crashDirReady = false;
@@ -81,11 +81,11 @@ static const char *ExceptionName(DWORD code) {
         case 0xE06D7363: return "C++ exception (unhandled)";
         case 0xC0000409: return "STACK_BUFFER_OVERRUN / __fastfail";
         case 0xC0000374: return "HEAP_CORRUPTION";
-        case THRONE_EXC_TERMINATE: return "std::terminate (uncaught C++ exception)";
-        case THRONE_EXC_PURECALL: return "pure virtual call";
-        case THRONE_EXC_INVALIDPARAM: return "CRT invalid parameter";
-        case THRONE_EXC_ABORT: return "abort()";
-        case THRONE_EXC_NEWFAIL: return "operator new failed";
+        case QUATTRO_EXC_TERMINATE: return "std::terminate (uncaught C++ exception)";
+        case QUATTRO_EXC_PURECALL: return "pure virtual call";
+        case QUATTRO_EXC_INVALIDPARAM: return "CRT invalid parameter";
+        case QUATTRO_EXC_ABORT: return "abort()";
+        case QUATTRO_EXC_NEWFAIL: return "operator new failed";
         default: return "unknown";
     }
 }
@@ -137,12 +137,12 @@ static void WriteSidecar(const wchar_t *path, EXCEPTION_POINTERS *pException, bo
     SYSTEMTIME st;
     GetLocalTime(&st);
 
-    AppendA(file, "Throne crash report\r\n===================\r\n");
+    AppendA(file, "Quattro crash report\r\n===================\r\n");
     wsprintfA(line, "time      : %04d-%02d-%02d %02d:%02d:%02d\r\n",
               st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond);
     AppendA(file, line);
     AppendA(file, "version   : " NKR_VERSION "\r\n");
-    AppendA(file, "arch      : " THRONE_ARCH_A "\r\n");
+    AppendA(file, "arch      : " QUATTRO_ARCH_A "\r\n");
     AppendA(file, "built     : " __DATE__ " " __TIME__ "\r\n");
     wsprintfA(line, "pid/tid   : %lu / %lu\r\n", GetCurrentProcessId(), GetCurrentThreadId());
     AppendA(file, line);
@@ -214,11 +214,11 @@ static void WriteCrashArtifacts(EXCEPTION_POINTERS *pException) {
 
     wchar_t dumpPath[MAX_PATH];
     wchar_t sidecarPath[MAX_PATH];
-    wsprintfW(dumpPath, L"%s\\Throne_%s_%s_%04d%02d%02d-%02d%02d%02d.dmp",
-              g_dumpPathTemplate, L"" NKR_VERSION, THRONE_ARCH,
+    wsprintfW(dumpPath, L"%s\\Quattro_%s_%s_%04d%02d%02d-%02d%02d%02d.dmp",
+              g_dumpPathTemplate, L"" NKR_VERSION, QUATTRO_ARCH,
               st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond);
-    wsprintfW(sidecarPath, L"%s\\Throne_%s_%s_%04d%02d%02d-%02d%02d%02d.txt",
-              g_dumpPathTemplate, L"" NKR_VERSION, THRONE_ARCH,
+    wsprintfW(sidecarPath, L"%s\\Quattro_%s_%s_%04d%02d%02d-%02d%02d%02d.txt",
+              g_dumpPathTemplate, L"" NKR_VERSION, QUATTRO_ARCH,
               st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond);
 
     bool dumpWritten = false;
@@ -236,7 +236,7 @@ static void WriteCrashArtifacts(EXCEPTION_POINTERS *pException) {
                 dumpInfo.ClientPointers = FALSE;
 
                 MINIDUMP_USER_STREAM logStream;
-                logStream.Type = THRONE_LOG_STREAM;
+                logStream.Type = QUATTRO_LOG_STREAM;
                 logStream.BufferSize = BuildLogStream();
                 logStream.Buffer = g_logStream;
                 MINIDUMP_USER_STREAM_INFORMATION streamInfo;
@@ -259,13 +259,13 @@ static void WriteCrashArtifacts(EXCEPTION_POINTERS *pException) {
     wchar_t addrHex[17];
     HexPtrW(addrHex, record != nullptr ? record->ExceptionAddress : nullptr);
     wsprintfW(msg,
-              L"Throne %s (%s) crashed.\n\nException: 0x%08X\nAddress: 0x%s\n\n"
+              L"Quattro %s (%s) crashed.\n\nException: 0x%08X\nAddress: 0x%s\n\n"
               L"A crash report was saved to:\n%s\n\nPlease attach the .txt file (and the .dmp if you can) to a bug report.",
-              L"" NKR_VERSION, THRONE_ARCH,
+              L"" NKR_VERSION, QUATTRO_ARCH,
               record != nullptr ? record->ExceptionCode : 0,
               addrHex,
               g_dumpPathTemplate);
-    MessageBoxW(nullptr, msg, L"Throne crashed", MB_OK | MB_ICONERROR | MB_SETFOREGROUND);
+    MessageBoxW(nullptr, msg, L"Quattro crashed", MB_OK | MB_ICONERROR | MB_SETFOREGROUND);
 }
 
 LONG __stdcall CreateCrashHandler(EXCEPTION_POINTERS *pException) {
@@ -302,17 +302,17 @@ static void ReportSynthetic(DWORD code) {
     TerminateProcess(GetCurrentProcess(), code);
 }
 
-static void OnTerminate() { ReportSynthetic(THRONE_EXC_TERMINATE); }
+static void OnTerminate() { ReportSynthetic(QUATTRO_EXC_TERMINATE); }
 
-static void OnPureCall() { ReportSynthetic(THRONE_EXC_PURECALL); }
+static void OnPureCall() { ReportSynthetic(QUATTRO_EXC_PURECALL); }
 
 static void OnInvalidParameter(const wchar_t *, const wchar_t *, const wchar_t *, unsigned int, uintptr_t) {
-    ReportSynthetic(THRONE_EXC_INVALIDPARAM);
+    ReportSynthetic(QUATTRO_EXC_INVALIDPARAM);
 }
 
-static void OnAbort(int) { ReportSynthetic(THRONE_EXC_ABORT); }
+static void OnAbort(int) { ReportSynthetic(QUATTRO_EXC_ABORT); }
 
-static void OnNewFailed() { ReportSynthetic(THRONE_EXC_NEWFAIL); }
+static void OnNewFailed() { ReportSynthetic(QUATTRO_EXC_NEWFAIL); }
 
 void Windows_SetCrashHandler() {
     SetErrorMode(SEM_FAILCRITICALERRORS);
@@ -379,11 +379,11 @@ void Windows_ConfigureWER() {
     // The core is a separate process; its fatal Go runtime aborts are invisible
     // to anything installed in this one.
     const bool ok = RegisterWerApp(exeName, g_dumpPathTemplate) &&
-                    RegisterWerApp(L"ThroneCore.exe", g_dumpPathTemplate);
+                    RegisterWerApp(L"QuattroCore.exe", g_dumpPathTemplate);
     if (ok) {
-        LOG_INFO("WER LocalDumps registered for Throne.exe and ThroneCore.exe");
+        LOG_INFO("WER LocalDumps registered for Quattro.exe and QuattroCore.exe");
     } else {
-        // One elevated run is enough to make this stick, and Throne already
+        // One elevated run is enough to make this stick, and Quattro already
         // elevates for TUN, so this is a notice rather than a problem.
         LOG_INFO("WER LocalDumps not registered (needs admin); crashes that bypass "
                  "the exception filter will go to %LOCALAPPDATA%\\CrashDumps if "

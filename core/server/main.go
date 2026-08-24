@@ -1,9 +1,9 @@
 package main
 
 import (
-	"ThroneCore/internal/boxmain"
-	"ThroneCore/ipc"
-	"ThroneCore/parentcheck"
+	"QuattroCore/internal/boxmain"
+	"QuattroCore/ipc"
+	"QuattroCore/parentcheck"
 	"fmt"
 	"github.com/xtls/xray-core/core"
 	"log"
@@ -16,7 +16,7 @@ import (
 	"syscall"
 	"time"
 
-	_ "ThroneCore/internal/distro/all"
+	_ "QuattroCore/internal/distro/all"
 	C "github.com/sagernet/sing-box/constant"
 )
 
@@ -72,7 +72,7 @@ func watchMemory() {
 func writeHeapProfile() (string, error) {
 	// Core runs privileged: a clock-derived name is guessable, and a symlink
 	// planted at that path turns this into a root-owned write anywhere
-	f, err := os.CreateTemp("", "throne-core-heap-*.pprof")
+	f, err := os.CreateTemp("", "quattro-core-heap-*.pprof")
 	if err != nil {
 		return "", err
 	}
@@ -84,11 +84,11 @@ func writeHeapProfile() (string, error) {
 }
 
 func RunCore() {
-	socketName := os.Getenv("THRONE_CORE_SOCKET")
+	socketName := os.Getenv("QUATTRO_CORE_SOCKET")
 	if socketName == "" {
-		log.Fatal("THRONE_CORE_SOCKET not set")
+		log.Fatal("QUATTRO_CORE_SOCKET not set")
 	}
-	debug = os.Getenv("THRONE_CORE_DEBUG") == "1"
+	debug = os.Getenv("QUATTRO_CORE_DEBUG") == "1"
 
 	parentcheck.CheckParentProcess()
 
@@ -129,7 +129,7 @@ func RunCore() {
 		log.Fatalf("failed to connect to GUI socket after 10 attempts: %v", err)
 	}
 
-	fmt.Println("Core Has Successfully Connected to Throne!")
+	fmt.Println("Core Has Successfully Connected to Quattro!")
 	runDispatch(conn)
 }
 

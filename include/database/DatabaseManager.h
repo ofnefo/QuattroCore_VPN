@@ -23,7 +23,7 @@ namespace Configs {
 
         static void createEntityIdsTable(Database& db);
         static bool entityIdsColumnExists(Database& db, const char* columnName);
-        // Derive the stats database path (throne_stats.db) as a sibling of the
+        // Derive the stats database path (quattro_stats.db) as a sibling of the
         // main database file.
         static std::string deriveStatsDbPath(const std::string& dbPath);
         void initializeRepos();

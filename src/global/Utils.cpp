@@ -373,17 +373,18 @@ static QString g_pendingDeeplink;
 
 QString Deeplink_ExtractFromArgs(const QStringList &args) {
     for (const auto &arg : args) {
-        if (arg.startsWith("throne://")) return arg;
+        if (arg.startsWith("quattro://")) return arg;
     }
     return {};
 }
 
 void Deeplink_Submit(const QString &url) {
-    if (url.isEmpty() || !url.startsWith("throne://")) return;
+    if (url.isEmpty() || !url.startsWith("quattro://")) return;
+    const QString normalized = url;
     if (MW_handle_deeplink) {
-        MW_handle_deeplink(url);
+        MW_handle_deeplink(normalized);
     } else {
-        g_pendingDeeplink = url; // main window not up yet; replayed by Deeplink_FlushPending
+        g_pendingDeeplink = normalized; // main window not up yet; replayed by Deeplink_FlushPending
     }
 }
 
@@ -406,7 +407,7 @@ QStringList LaunchFiles_ExtractFromArgs(const QStringList &args, const QDir &lau
             if (arg == "-appdata") i++;
             continue;
         }
-        if (arg.startsWith("throne://")) continue;
+        if (arg.startsWith("quattro://")) continue;
 
         // Desktop launchers hand over file:// URLs, terminals plain paths, and a
         // relative path resolves against the directory we were launched from -

@@ -31,7 +31,7 @@
 #include <algorithm>
 
 namespace {
-    const QColor kRuntimeThroneColor = Stats::kStatsAccentColor;
+    const QColor kRuntimeQuattroColor = Stats::kStatsAccentColor;
     const QColor kRuntimeCoreColor = Stats::kStatsHealthyColor;
 
     QString formatCpu(const Sys::ProcessMetrics::Sample& s) {
@@ -52,14 +52,14 @@ DialogRuntimeStats::DialogRuntimeStats(QWidget* parent) : QDialog(parent), ui(ne
     ui->processLayout->setStretch(1, 1);
     ui->processLayout->setStretch(2, 1);
 
-    ui->cpuChart->setColors(kRuntimeThroneColor, kRuntimeCoreColor);
-    ui->ramChart->setColors(kRuntimeThroneColor, kRuntimeCoreColor);
+    ui->cpuChart->setColors(kRuntimeQuattroColor, kRuntimeCoreColor);
+    ui->ramChart->setColors(kRuntimeQuattroColor, kRuntimeCoreColor);
     ui->cpuChart->setFormatter([](double v) { return QString::number(v, 'f', 0) + QStringLiteral("%"); });
     ui->ramChart->setFormatter([](double v) { return ReadableSize(static_cast<qint64>(v)); });
     ui->cpuChart->setCaption(tr("CPU"));
     ui->ramChart->setCaption(tr("RAM"));
-    ui->labelThroneName->setText(QStringLiteral("<span style=\"color:%1\">●</span> %2")
-                                     .arg(kRuntimeThroneColor.name(), "Throne"));
+    ui->labelQuattroName->setText(QStringLiteral("<span style=\"color:%1\">●</span> %2")
+                                     .arg(kRuntimeQuattroColor.name(), "Quattro"));
     ui->labelCoreName->setText(QStringLiteral("<span style=\"color:%1\">●</span> %2")
                                    .arg(kRuntimeCoreColor.name(), tr("Core")));
 
@@ -92,8 +92,8 @@ void DialogRuntimeStats::refreshLive() {
     auto* mw = GetMainWindow();
 
     const auto selfSample = metrics_.sample(QCoreApplication::applicationPid());
-    ui->vThroneRam->setText(formatRam(selfSample));
-    ui->vThroneCpu->setText(formatCpu(selfSample));
+    ui->vQuattroRam->setText(formatRam(selfSample));
+    ui->vQuattroCpu->setText(formatCpu(selfSample));
 
     const qint64 corePid = mw ? mw->GetCorePid() : 0;
     const auto coreSample = corePid > 0 ? metrics_.sample(corePid) : Sys::ProcessMetrics::Sample{};
@@ -134,11 +134,11 @@ void DialogRuntimeStats::refreshLive() {
     // --- On-disk size of the databases (main + stats, incl. WAL/SHM sidecars) ---
     qint64 dbBytes = 0;
     const QDir dir(QDir::currentPath());
-    for (const QFileInfo& fi : dir.entryInfoList(QStringList{QStringLiteral("throne*.db*")}, QDir::Files))
+    for (const QFileInfo& fi : dir.entryInfoList(QStringList{QStringLiteral("quattro*.db*")}, QDir::Files))
         dbBytes += fi.size();
     ui->vDbSize->setText(ReadableSize(dbBytes));
 
-    // --- Throne uptime ---
+    // --- Quattro uptime ---
     const qint64 up = appStartEpoch > 0 ? QDateTime::currentSecsSinceEpoch() - appStartEpoch : 0;
     ui->vUptime->setText(Stats::HumanizeDuration(up));
 

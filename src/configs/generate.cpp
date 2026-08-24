@@ -58,9 +58,9 @@ namespace Configs {
             constexpr auto tunIn = "tun-in";
             constexpr auto redirectIn = "hijack";
             constexpr auto dnsServerIn = "hijack-dns";
-            constexpr auto xrayFullConfigIn = "throne-bridge";
+            constexpr auto xrayFullConfigIn = "quattro-bridge";
 
-            constexpr auto adblockRuleSet = "throne-adblocksingbox";
+            constexpr auto adblockRuleSet = "quattro-adblocksingbox";
 
             constexpr auto mainChainPrefix = "config";
             constexpr auto routeChainPrefix = "route";
@@ -393,7 +393,7 @@ namespace Configs {
         }
 
         QString genTunName() {
-            auto tun_name = "throne-tun";
+            auto tun_name = "quattro-tun";
 #ifdef Q_OS_MACOS
             tun_name = "";
 #endif
@@ -1523,7 +1523,7 @@ namespace Configs {
             int singToXrayPort = -1;
             int xrayToSingPort = -1;
             int xrayFullConfigPort = -1;
-            // Keep only Throne's bridge inbound: sibling configs from one
+            // Keep only Quattro's bridge inbound: sibling configs from one
             // subscription repeat the same ports and would fail to bind.
             bool soleXrayInbound = false;
             bool warpWrap = false;

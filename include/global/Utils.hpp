@@ -59,7 +59,7 @@ inline QString software_name;
 inline QString software_core_name;
 
 // Epoch-seconds when the app started; set once in main(). Read by the Runtime
-// Stats panel to display Throne's uptime.
+// Stats panel to display Quattro's uptime.
 inline qint64 appStartEpoch = 0;
 
 // MainWindow functions
@@ -110,10 +110,10 @@ namespace MwArg {
 }
 
 inline std::function<void(MwMessage, QStringList)> MW_dialog_message;
-// Handles a "throne://" deeplink. Set by MainWindow; marshals to the UI thread.
+// Handles a "quattro://" deeplink. Set by MainWindow; marshals to the UI thread.
 inline std::function<void(QString)> MW_handle_deeplink;
 
-// Imports config files the OS handed us ("Open with Throne"). Set by MainWindow;
+// Imports config files the OS handed us ("Open with Quattro"). Set by MainWindow;
 // marshals to the UI thread.
 inline std::function<void(QStringList)> MW_import_files;
 

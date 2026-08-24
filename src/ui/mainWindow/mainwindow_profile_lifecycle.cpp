@@ -244,7 +244,7 @@ void MainWindow::profile_start(int _id) {
         req.need_xray = !result->xrayConfig.isEmpty();
         for (const auto &full : result->xrayFullConfigs) req.xray_full_configs.push_back(full.toStdString());
         if (req.need_xray || !req.xray_full_configs.empty()) {
-            // Resolution is wired in the core (ThroneWiring), not baked into the config: point
+            // Resolution is wired in the core (QuattroWiring), not baked into the config: point
             // it at sing-box's loopback DNS-in. Test instances leave these empty.
             req.xray_outbound_dns_address = ("127.0.0.1:" + QString::number(Configs::dataManager->settingsRepo->core_dns_in_port)).toStdString();
             req.xray_outbound_dns_strategy = Configs::getXrayOutboundDomainStrategy().toStdString();

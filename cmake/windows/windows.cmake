@@ -4,13 +4,13 @@ set(PLATFORM_LIBRARIES wininet wsock32 ws2_32 user32 rasapi32 iphlpapi ntdll wbe
 include(cmake/windows/generate_product_version.cmake)
 generate_product_version(
         QV2RAY_RC
-        ICON "${CMAKE_SOURCE_DIR}/res/Throne.ico"
-        NAME "Throne"
-        BUNDLE "Throne"
-        COMPANY_NAME "Throne"
-        COMPANY_COPYRIGHT "Throne"
-        FILE_DESCRIPTION "Throne"
-        ORIGINAL_FILENAME "Throne.exe"
+        ICON "${CMAKE_SOURCE_DIR}/res/Quattro.ico"
+        NAME "Quattro"
+        BUNDLE "Quattro"
+        COMPANY_NAME "Quattro"
+        COMPANY_COPYRIGHT "Quattro contributors"
+        FILE_DESCRIPTION "Quattro VPN desktop client"
+        ORIGINAL_FILENAME "Quattro.exe"
         VERSION_MAJOR ${NKR_VERSION_MAJOR}
         VERSION_MINOR ${NKR_VERSION_MINOR}
         VERSION_PATCH ${NKR_VERSION_PATCH}

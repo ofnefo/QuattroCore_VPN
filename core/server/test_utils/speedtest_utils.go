@@ -11,8 +11,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"ThroneCore/internal"
-	"ThroneCore/internal/boxbox"
+	"QuattroCore/internal"
+	"QuattroCore/internal/boxbox"
 
 	"github.com/sagernet/sing-box/adapter"
 	"github.com/sagernet/sing/service"

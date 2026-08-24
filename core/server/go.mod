@@ -1,4 +1,4 @@
-module ThroneCore
+module QuattroCore
 
 go 1.26
 

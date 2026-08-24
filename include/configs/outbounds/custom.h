@@ -158,7 +158,7 @@ namespace Configs
         {
             if (type == CustomXrayOutbound) {
                 // Outbound server-domain resolution is wired onto the Xray
-                // instance after creation (ThroneWiring), not baked into the
+                // instance after creation (QuattroWiring), not baked into the
                 // config as a sockopt.domainStrategy.
                 return {QString2QJsonObject(config), ""};
             }

@@ -150,7 +150,7 @@ namespace Configs
             const auto b64 = QJsonObject2QString(json, true)
                                 .toUtf8()
                                 .toBase64(QByteArray::Base64UrlEncoding | QByteArray::OmitTrailingEquals);
-            return QStringLiteral("throne://add/") + QString::fromLatin1(b64);
+            return QStringLiteral("quattro://add/") + QString::fromLatin1(b64);
         }
 
         // baseConfig overrides

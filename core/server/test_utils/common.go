@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"ThroneCore/internal/boxbox"
+	"QuattroCore/internal/boxbox"
 
 	"github.com/Mahdi-zarei/speedtest-go/speedtest"
 	"github.com/sagernet/sing-box/adapter"

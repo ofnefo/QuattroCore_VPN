@@ -215,6 +215,7 @@ void MainWindow::refresh_status(const QString &traffic_update) {
     icon_status = icon_status_new;
 
     refresh_startstop_button();
+    refreshQuattroDashboard();
 }
 
 void MainWindow::refresh_startstop_button() {

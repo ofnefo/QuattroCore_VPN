@@ -128,7 +128,7 @@ namespace Configs {
         // Proxy table column whose filter field was last used; -1 until one is.
         int last_filter_column = -1;
 
-        // throne:// URL scheme: mirror of what we last wrote to the OS (registry/desktop/bundle).
+        // quattro:// URL scheme: mirror of what we last wrote to the OS (registry/desktop/bundle).
         // Re-registered on startup only when the current state differs (e.g. install moved).
         QString url_scheme_mirror = "";
 

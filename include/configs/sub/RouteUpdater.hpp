@@ -6,7 +6,7 @@
 #include "include/database/entities/RouteProfile.h"
 
 namespace RouteUpdate {
-    // Fetch profile->remoteURL, parse the response (a throne://route deep link, its base64,
+    // Fetch profile->remoteURL, parse the response (a quattro://route deep link, its base64,
     // or the JSON share object) and overwrite the profile's structured rules + default
     // outbound in place, keeping id/name/URL/auto-update. Blocks on the network, so call it
     // on a worker thread. Returns an error string (empty on success); non-fatal notes (e.g.

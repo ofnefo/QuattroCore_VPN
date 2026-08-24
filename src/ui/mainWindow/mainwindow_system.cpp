@@ -2,6 +2,7 @@
 #include "NkrVersion.h"
 
 #include <QApplication>
+#include <QCryptographicHash>
 #include <QDesktopServices>
 #include <QDir>
 #include <QDirIterator>
@@ -9,6 +10,7 @@
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QMessageBox>
+#include <QRegularExpression>
 
 #include "3rdparty/qv2ray/v2/proxy/QvProxyConfigurator.hpp"
 #include "include/api/RPC.h"
@@ -154,10 +156,11 @@ void MainWindow::on_menu_exit_triggered() {
     if (exit_reason == ExitReason::RunUpdater) {
         QDir::setCurrent(QApplication::applicationDirPath());
 #ifdef Q_OS_WIN
-        QFile::copy("./updater.exe", "./updater.old");
-        QProcess::startDetached("./updater.old", QStringList{});
+        QFile::remove("./QuattroUpdater.old.exe");
+        QFile::copy("./QuattroUpdater.exe", "./QuattroUpdater.old.exe");
+        QProcess::startDetached("./QuattroUpdater.old.exe", QStringList{});
 #else
-        QProcess::startDetached("./updater", QStringList{});
+        QProcess::startDetached("./QuattroUpdater", QStringList{});
 #endif
     } else if (exit_reason == ExitReason::Restart || exit_reason == ExitReason::RestartWithTun || exit_reason == ExitReason::RestartWithDns) {
         QDir::setCurrent(QApplication::applicationDirPath());
@@ -228,7 +231,7 @@ bool MainWindow::get_elevated_permissions(ExitReason reason) {
     }
 #endif
 #ifdef Q_OS_WIN
-    auto n = QMessageBox::warning(GetMessageBoxParent(), software_name, tr("Please run Throne as admin"), QMessageBox::Yes | QMessageBox::No);
+    auto n = QMessageBox::warning(GetMessageBoxParent(), software_name, tr("Please run Quattro as admin"), QMessageBox::Yes | QMessageBox::No);
     if (n == QMessageBox::Yes) {
         this->exit_reason = reason;
         on_menu_exit_triggered();
@@ -327,73 +330,63 @@ bool MainWindow::StopVPNProcess() {
 
 namespace {
 
-bool isNewer(QString assetName) {
-    if (QString(NKR_VERSION).isEmpty()) return false;
-    assetName = assetName.mid(7); // take out Throne-
-    QString version;
-    auto spl = assetName.split('-');
-    version += spl[0]; // version: 1.2.3
-    if (spl[1].contains("beta") || spl[1].contains("alpha") || spl[1].contains("rc")) version += "."+spl[1]; // .beta.13
-    auto parts = version.split("."); // [1,2,3,beta,13]
-    auto currentParts = QString(NKR_VERSION).replace("-", ".").split('.');
-    if (parts.size() < 3 || currentParts.size() < 3)
-    {
-        MW_show_log("Version strings seem to be invalid" + QString(NKR_VERSION) + " and " + version);
+bool parseReleaseVersion(const QString &value, bool assetName, QList<int> *result) {
+    static const QRegularExpression assetPattern(
+        QStringLiteral(R"(^Quattro-[vV]?(\d+)\.(\d+)\.(\d+)(?:-(alpha|beta|rc)(?:[.-]?(\d+))?)?-)")
+    );
+    static const QRegularExpression versionPattern(
+        QStringLiteral(R"(^[vV]?(\d+)\.(\d+)\.(\d+)(?:-(alpha|beta|rc)(?:[.-]?(\d+))?)?$)")
+    );
+    const auto match = (assetName ? assetPattern : versionPattern).match(value);
+    if (!match.hasMatch()) return false;
+
+    int stage = 4; // Stable releases sort after alpha, beta and rc.
+    if (match.captured(4) == "alpha") stage = 1;
+    if (match.captured(4) == "beta") stage = 2;
+    if (match.captured(4) == "rc") stage = 3;
+    *result = {match.captured(1).toInt(), match.captured(2).toInt(),
+               match.captured(3).toInt(), stage, match.captured(5).toInt()};
+    return true;
+}
+
+bool isNewer(const QString &assetName) {
+    QList<int> available;
+    QList<int> current;
+    if (!parseReleaseVersion(assetName, true, &available) ||
+        !parseReleaseVersion(QStringLiteral(NKR_VERSION), false, &current)) {
+        MW_show_log(QStringLiteral("Invalid Quattro release version: %1 (current: %2)")
+                        .arg(assetName, QStringLiteral(NKR_VERSION)));
         return false;
     }
-    std::vector<int> verNums;
-    std::vector<int> currNums;
-    // add base version first
-    verNums.push_back(parts[0].toInt());
-    verNums.push_back(parts[1].toInt());
-    verNums.push_back(parts[2].toInt());
-    if (parts.size() > 3)
-    {
-        if (parts[3] == "alpha") verNums.push_back(1);
-        if (parts[3] == "beta") verNums.push_back(2);
-        if (parts[3] == "rc") verNums.push_back(3);
-        if (parts.size() > 4) verNums.push_back(parts[4].toInt());
-    }
-
-    currNums.push_back(currentParts[0].toInt());
-    currNums.push_back(currentParts[1].toInt());
-    currNums.push_back(currentParts[2].toInt());
-    if (currentParts.size() > 3)
-    {
-        if (currentParts[3] == "alpha") currNums.push_back(1);
-        if (currentParts[3] == "beta") currNums.push_back(2);
-        if (currentParts[3] == "rc") currNums.push_back(3);
-        if (currentParts.size() > 4) currNums.push_back(currentParts[4].toInt());
-    }
-
-    if (verNums.size() < 3 || currNums.size() < 3)
-    {
-        MW_show_log("Version strings seem to be invalid" + QString(NKR_VERSION) + " and " + version);
-        return false;
-    }
-
-    for (int i=0;i<3;i++)
-    {
-        if (verNums[i] > currNums[i]) return true;
-        if (verNums[i] < currNums[i]) return false;
-    }
-
-    // equal base version, check beta-ness
-    if (verNums.size() == 5 && currNums.size() == 3) return false;
-    if (verNums.size() == 3 && currNums.size() == 5) return true;
-    if (verNums.size() == 5 && currNums.size() == 5)
-    {
-        for (int i=3;i<5;i++)
-        {
-            if (verNums[i] > currNums[i]) return true;
-            if (verNums[i] < currNums[i]) return false;
-        }
-    } else
-    {
-		MW_show_log("There are no updates. You have the latest version - " + QString(NKR_VERSION));
-        return false;
+    for (qsizetype i = 0; i < available.size(); ++i) {
+        if (available[i] != current[i]) return available[i] > current[i];
     }
     return false;
+}
+
+QString verifyUpdateArchive(const QString &archivePath, const QString &checksumPath) {
+    QFile checksumFile(checksumPath);
+    if (!checksumFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        return QObject::tr("Release checksum is unavailable.");
+    }
+    const QByteArray expected = checksumFile.readAll().trimmed().split(' ').first().toLower();
+    checksumFile.close();
+    if (expected.size() != 64) {
+        return QObject::tr("Release checksum has an invalid format.");
+    }
+
+    QFile archive(archivePath);
+    if (!archive.open(QIODevice::ReadOnly)) {
+        return QObject::tr("Downloaded update archive cannot be opened.");
+    }
+    QCryptographicHash hash(QCryptographicHash::Sha256);
+    if (!hash.addData(&archive)) {
+        return QObject::tr("Downloaded update archive cannot be hashed.");
+    }
+    if (hash.result().toHex().toLower() != expected) {
+        return QObject::tr("Downloaded update failed SHA-256 verification.");
+    }
+    return {};
 }
 
 constexpr auto dashboardDownloadURL = "https://github.com/SagerNet/sing-box-dashboard/archive/refs/heads/gh-pages.zip";
@@ -425,11 +418,11 @@ void MainWindow::SeedDashboard() {
     if (!dashDir.exists() && !QDir().mkpath(Configs::apiDashboardDir)) return;
     if (!QFile::exists(dashDir.filePath("index.html"))) unpackBundledDashboard(dashDir);
     // Reinstalling replaces the whole directory, so this cannot be a one-time copy.
-    auto src = QFile(":/Throne/dashboard-bootstrap.html");
+    auto src = QFile(":/Quattro/dashboard-bootstrap.html");
     if (!src.open(QIODevice::ReadOnly)) return;
     const auto data = src.readAll();
     src.close();
-    if (auto dest = QFile(dashDir.filePath("throne.html")); dest.open(QIODevice::Truncate | QIODevice::WriteOnly)) {
+    if (auto dest = QFile(dashDir.filePath("quattro.html")); dest.open(QIODevice::Truncate | QIODevice::WriteOnly)) {
         dest.write(data);
         dest.close();
     }
@@ -450,7 +443,7 @@ void MainWindow::OpenDashboard() {
     const auto show = [this, port] {
         SeedDashboard();
         // Fragment, not query: browsers never send it to the server.
-        QUrl url(QString("http://127.0.0.1:%1/dashboard/throne.html").arg(port));
+        QUrl url(QString("http://127.0.0.1:%1/dashboard/quattro.html").arg(port));
         url.setFragment(QString("secret=%1&url=127.0.0.1:%2")
                             .arg(QString::fromUtf8(QUrl::toPercentEncoding(Configs::dataManager->settingsRepo->core_box_api_secret)))
                             .arg(port),
@@ -477,7 +470,7 @@ void MainWindow::OpenDashboard() {
             });
             return;
         }
-        const auto archive = QString("throne-dashboard.zip");
+        const auto archive = QString("quattro-dashboard.zip");
         auto error = NetworkRequestHelper::DownloadAsset(dashboardDownloadURL, archive, true);
         if (error.isEmpty()) {
             bool ok = false;
@@ -506,11 +499,11 @@ void MainWindow::CheckUpdate() {
 #  else
 #    ifdef Q_OS_WIN64
         if (WinVersion::IsBuildNumGreaterOrEqual(BuildNumber::Windows_10_1809))
-            search = "windows64";
+            search = "windows-amd64";
         else
-	        search = "windowslegacy64";
+	        search = "windowslegacy-amd64";
 #    else
-	    search = "windows32";
+	    search = "windowslegacy-386";
 #    endif
 #  endif
 #endif
@@ -535,7 +528,7 @@ void MainWindow::CheckUpdate() {
         return;
     }
 
-    auto resp = NetworkRequestHelper::HttpGet("https://api.github.com/repos/throneproj/Throne/releases");
+    auto resp = NetworkRequestHelper::HttpGet("https://api.github.com/repos/ofnefo/quattro-desktop/releases");
     if (!resp.error.isEmpty()) {
         runOnUiThread([=,this] {
             MessageBoxWarning(QObject::tr("Update"), QObject::tr("Requesting update error: %1").arg(resp.error + "\n" + resp.data));
@@ -543,7 +536,7 @@ void MainWindow::CheckUpdate() {
         return;
     }
 
-    QString assets_name, release_download_url, release_url, release_note, note_pre_release;
+    QString assets_name, release_download_url, checksum_download_url, release_url, release_note, note_pre_release;
     bool exitFlag = false;
     QJsonArray array = QString2QJsonArray(resp.data);
     for (const QJsonValue value : array) {
@@ -556,6 +549,12 @@ void MainWindow::CheckUpdate() {
                 release_note = release["body"].toString();
                 assets_name = asset["name"].toString();
                 release_download_url = asset["browser_download_url"].toString();
+                for (const QJsonValue checksumAsset : release["assets"].toArray()) {
+                    if (checksumAsset["name"].toString() == assets_name + ".sha256") {
+                        checksum_download_url = checksumAsset["browser_download_url"].toString();
+                        break;
+                    }
+                }
                 exitFlag = true;
                 break;
             }
@@ -594,11 +593,24 @@ void MainWindow::CheckUpdate() {
                 }
                 QString errors;
                 if (!release_download_url.isEmpty()) {
-                    auto res = NetworkRequestHelper::DownloadAsset(release_download_url, "Throne.zip");
+                    auto res = NetworkRequestHelper::DownloadAsset(release_download_url, "Quattro.zip");
                     if (!res.isEmpty()) {
                         errors += res;
                     }
                 }
+                if (errors.isEmpty()) {
+                    if (checksum_download_url.isEmpty()) {
+                        errors += tr("Release checksum asset is missing.");
+                    } else {
+                        auto res = NetworkRequestHelper::DownloadAsset(checksum_download_url, "Quattro.zip.sha256");
+                        if (!res.isEmpty()) errors += res;
+                    }
+                }
+                if (errors.isEmpty()) {
+                    errors += verifyUpdateArchive("Quattro.zip", "Quattro.zip.sha256");
+                }
+                QFile::remove("Quattro.zip.sha256");
+                if (!errors.isEmpty()) QFile::remove("Quattro.zip");
                 mu_download_update.unlock();
                 runOnUiThread([=,this] {
                     if (errors.isEmpty()) {

@@ -42,7 +42,7 @@
 #ifdef Q_OS_MACOS
 #include <QFileOpenEvent>
 
-// On macOS the OS reuses the running app and delivers throne:// URLs, as well as
+// On macOS the OS reuses the running app and delivers quattro:// URLs, as well as
 // files opened with the app, as a QFileOpenEvent to the application object (never
 // via argv). This filter feeds both into the common pipelines.
 class MacOpenEventFilter : public QObject {
@@ -54,7 +54,7 @@ protected:
         if (event->type() == QEvent::FileOpen) {
             const auto openEvent = static_cast<QFileOpenEvent *>(event);
             const QString url = openEvent->url().toString();
-            if (url.startsWith("throne://")) {
+            if (url.startsWith("quattro://")) {
                 Deeplink_Submit(url);
                 return true;
             }
@@ -159,7 +159,7 @@ namespace {
     // token may actually do under Program Files.
     bool DirIsWritable(const QDir &dir) {
         if (!dir.exists() && !QDir().mkpath(dir.absolutePath())) return false;
-        QFile probe(dir.absoluteFilePath(".throne-write-test"));
+        QFile probe(dir.absoluteFilePath(".quattro-write-test"));
         if (!probe.open(QIODevice::WriteOnly)) return false;
         probe.close();
         probe.remove();
@@ -168,7 +168,7 @@ namespace {
 
     bool ConfigDirIsUsable(const QDir &configDir) {
         if (!DirIsWritable(configDir)) return false;
-        const QString db = configDir.absoluteFilePath("throne.db");
+        const QString db = configDir.absoluteFilePath("quattro.db");
         if (!QFile::exists(db)) return true;
         QFile file(db);
         return file.open(QIODevice::ReadWrite);
@@ -200,7 +200,7 @@ namespace {
 
         const QString userConfig = userWd.absoluteFilePath("config");
         QDir().mkpath(userConfig);
-        if (!QFile::exists(userConfig + "/throne.db") && QFile::exists(installConfig + "/throne.db")) {
+        if (!QFile::exists(userConfig + "/quattro.db") && QFile::exists(installConfig + "/quattro.db")) {
             CopyDirContents(installConfig, userConfig);
             LOG_WARN(QString("copied existing config from %1").arg(installConfig));
         }
@@ -213,7 +213,7 @@ namespace {
     }
 } // namespace
 
-#define LOCAL_SERVER_PREFIX "throne-"
+#define LOCAL_SERVER_PREFIX "quattro-"
 
 int main(int argc, char* argv[]) {
     Logging::InstallQtMessageHandler();
@@ -253,7 +253,7 @@ int main(int argc, char* argv[]) {
 #endif
 
     QStringList arguments = QApplication::arguments();
-    // A throne:// URL may be passed as a launch argument (Windows/Linux), and so may
+    // A quattro:// URL may be passed as a launch argument (Windows/Linux), and so may
     // config files opened with the app. Both are delivered after the window is up, or
     // forwarded to the primary instance via the socket below. Files are resolved
     // before the working directory moves, since their paths may be relative to it.
@@ -262,8 +262,8 @@ int main(int argc, char* argv[]) {
 
     // Clean
     QDir::setCurrent(QApplication::applicationDirPath());
-    if (QFile::exists("updater.old")) {
-        QFile::remove("updater.old");
+    if (QFile::exists("QuattroUpdater.old.exe")) {
+        QFile::remove("QuattroUpdater.old.exe");
     }
 
     // dirs & clean
@@ -280,7 +280,8 @@ int main(int argc, char* argv[]) {
 #ifdef NKR_CPP_USE_APPDATA
     useAppdata = true; // Example: Package & MacOS
 #endif
-    QApplication::setApplicationName("Throne");
+    QApplication::setApplicationName("Quattro");
+    QApplication::setApplicationDisplayName("Quattro");
     if(useAppdata) {
         if (!appdataDir.isEmpty()) {
             wd.setPath(appdataDir);
@@ -304,7 +305,7 @@ int main(int argc, char* argv[]) {
     appStartEpoch = QDateTime::currentSecsSinceEpoch();
 
     // Load database
-    Configs::initDB(QString(QDir::currentPath() + QDir::separator() + "throne.db").toStdString());
+    Configs::initDB(QString(QDir::currentPath() + QDir::separator() + "quattro.db").toStdString());
 
     Logging::SetLevel(Logging::LevelFromString(Configs::dataManager->settingsRepo->log_file_level));
 
@@ -390,7 +391,7 @@ int main(int argc, char* argv[]) {
     {
         qDebug() << "Another instance is running, let's wake it up and quit";
         // Hand off whatever we were launched with so the primary instance handles it:
-        // one item per line, a throne:// url or a file:// url. Paths go over as urls
+        // one item per line, a quattro:// url or a file:// url. Paths go over as urls
         // so that a name containing a newline cannot break the framing.
         QStringList payload;
         if (!launchDeeplink.isEmpty()) payload << launchDeeplink;
@@ -429,7 +430,7 @@ int main(int argc, char* argv[]) {
         // carries no trailing newline, is flushed once the peer is done.
         auto pending = std::make_shared<QByteArray>();
         auto handleLine = [](const QString &line) {
-            if (line.startsWith("throne://")) {
+            if (line.startsWith("quattro://")) {
                 Deeplink_Submit(line);
             } else if (line.startsWith("file://")) {
                 LaunchFiles_Submit({QUrl(line).toLocalFile()});
@@ -487,7 +488,7 @@ int main(int argc, char* argv[]) {
     Configs::dataManager->RunDeferredMaintenance();
 
     if (Logging::PreviousSessionCrashed()) {
-        MW_show_log(QObject::tr("[Warn] Throne did not shut down cleanly last time. "
+        MW_show_log(QObject::tr("[Warn] Quattro did not shut down cleanly last time. "
                                 "Diagnostics were saved to: %1").arg(Logging::LogDir()));
     }
 

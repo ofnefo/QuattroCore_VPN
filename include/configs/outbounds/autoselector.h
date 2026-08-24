@@ -9,7 +9,7 @@ namespace Configs
     //
     // Membership is resolved at build time from `gid` (plus the filters), so
     // servers added by a subscription update join the selector with no user
-    // action. Ranking is done client-side by Throne's own URL test — `pool`
+    // action. Ranking is done client-side by Quattro's own URL test — `pool`
     // holds the result, best first, capped at `poolCap`. Only the first
     // `buildLimit` of that pool are actually emitted into the running config;
     // the core's auto-selector then does the fast switching among those.

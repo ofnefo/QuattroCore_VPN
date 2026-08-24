@@ -1,15 +1,15 @@
 package main
 
 import (
-	"ThroneCore/gen"
-	"ThroneCore/internal/boxbox"
-	"ThroneCore/internal/boxdns"
-	"ThroneCore/internal/boxmain"
-	"ThroneCore/internal/process"
-	"ThroneCore/internal/sys"
-	"ThroneCore/internal/wg"
-	"ThroneCore/internal/xray"
-	"ThroneCore/test_utils"
+	"QuattroCore/gen"
+	"QuattroCore/internal/boxbox"
+	"QuattroCore/internal/boxdns"
+	"QuattroCore/internal/boxmain"
+	"QuattroCore/internal/process"
+	"QuattroCore/internal/sys"
+	"QuattroCore/internal/wg"
+	"QuattroCore/internal/xray"
+	"QuattroCore/test_utils"
 	"archive/zip"
 	"context"
 	"errors"
@@ -31,7 +31,7 @@ import (
 	E "github.com/sagernet/sing/common/exceptions"
 	"github.com/sagernet/sing/service"
 	"github.com/xtls/xray-core/core"
-	xthrone "github.com/xtls/xray-core/throne"
+	xquattro "github.com/xtls/xray-core/throne"
 	xinternet "github.com/xtls/xray-core/transport/internet"
 )
 
@@ -404,7 +404,7 @@ func (s *server) Start(ctx context.Context, in *gen.LoadConfigReq) (out *gen.Err
 		if dnsAddr == "" {
 			return nil
 		}
-		resolver, e := xthrone.NewResolver(dnsAddr)
+		resolver, e := xquattro.NewResolver(dnsAddr)
 		if e != nil {
 			return E.Cause(e, "failed to create Xray outbound DNS resolver")
 		}

@@ -1,4 +1,4 @@
-name: Throne build matrix
+name: Quattro build matrix
 on:
   workflow_dispatch:
     inputs:
@@ -88,6 +88,10 @@ jobs:
         run: |
           go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.11
           go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.6.2
+      - name: Test Quattro updater
+        if: steps.cache-common.outputs.cache-hit != 'true'
+        working-directory: core/server
+        run: go test ./cmd/quattro-updater
       - name: Clone cronet-go
         if: matrix.cross_os == 'linux'
         run: |
@@ -120,7 +124,7 @@ jobs:
       - name: Uploading Artifact
         uses: actions/upload-artifact@v7.0.1
         with:
-          name: Throne-${{ github.sha }}-Common-${{ matrix.cross_os }}-${{ matrix.cross_arch }}
+          name: Quattro-${{ github.sha }}-Common-${{ matrix.cross_os }}-${{ matrix.cross_arch }}
           path: artifacts.tgz
           compression-level: 0
   build-cpp:
@@ -239,7 +243,7 @@ jobs:
       - name: Download Artifacts
         uses: actions/download-artifact@v8.0.1
         with:
-          name: Throne-${{ github.sha }}-Common-${{ matrix.common }}
+          name: Quattro-${{ github.sha }}-Common-${{ matrix.common }}
           path: download-artifact
       # ========================================================================================================= Qt Install
       - name: Install Qt
@@ -310,6 +314,7 @@ jobs:
         shell: bash
         if: contains( matrix.platform, 'macos' )
         run: |
+          ./script/generate_macos_icon.sh
           mkdir build
           cd build
           curl -fLso srslist.h "https://raw.githubusercontent.com/throneproj/routeprofiles/rule-set/srslist.h"
@@ -324,7 +329,7 @@ jobs:
       - name: Uploading Artifact
         uses: actions/upload-artifact@v7.0.1
         with:
-          name: Throne-${{ github.sha }}-${{ matrix.dest_suffix }}
+          name: Quattro-${{ github.sha }}-${{ matrix.dest_suffix }}
           path: artifacts.tgz
           compression-level: 0
   publish:
@@ -369,77 +374,81 @@ jobs:
             -DAPP_VERSION_PATCH="${APP_VERSION_PATCH}" \
             -DAPP_VERSION_BUILD="${APP_VERSION_BUILD}" \
             windows_installer.nsi
-          cp ThroneSetup.exe deployment/Throne-${{ github.event.inputs.tag }}-windows-universal-installer.exe
+          cp QuattroSetup.exe deployment/Quattro-${{ github.event.inputs.tag }}-windows-universal-installer.exe
           ####
           cd deployment
           mkdir debug
           ####
           bash ../script/pack_debian.sh ${{ github.event.inputs.tag }} amd64
-          mv Throne.deb Throne-${{ github.event.inputs.tag }}-debian-amd64.deb
-          rm -rf Throne
+          mv Quattro.deb Quattro-${{ github.event.inputs.tag }}-debian-amd64.deb
+          rm -rf Quattro
           ####
           bash ../script/pack_debian.sh ${{ github.event.inputs.tag }} amd64 systemqt
-          mv Throne.deb Throne-${{ github.event.inputs.tag }}-debian-amd64-system-qt.deb
-          rm -rf Throne
+          mv Quattro.deb Quattro-${{ github.event.inputs.tag }}-debian-amd64-system-qt.deb
+          rm -rf Quattro
           ####
           bash ../script/pack_debian.sh ${{ github.event.inputs.tag }} arm64
-          mv Throne.deb Throne-${{ github.event.inputs.tag }}-debian-arm64.deb
-          rm -rf Throne
+          mv Quattro.deb Quattro-${{ github.event.inputs.tag }}-debian-arm64.deb
+          rm -rf Quattro
           ####
           bash ../script/pack_debian.sh ${{ github.event.inputs.tag }} arm64 systemqt
-          mv Throne.deb Throne-${{ github.event.inputs.tag }}-debian-arm64-system-qt.deb
-          rm -rf Throne
+          mv Quattro.deb Quattro-${{ github.event.inputs.tag }}-debian-arm64-system-qt.deb
+          rm -rf Quattro
           ####
-          mv linux-amd64 Throne
-          mv Throne/Throne.debug debug/Throne-${{ github.event.inputs.tag }}-linux-amd64.debug
-          zip -9 -r Throne-${{ github.event.inputs.tag }}-linux-amd64.zip Throne
-          rm -rf Throne
+          mv linux-amd64 Quattro
+          mv Quattro/Quattro.debug debug/Quattro-${{ github.event.inputs.tag }}-linux-amd64.debug
+          zip -9 -r Quattro-${{ github.event.inputs.tag }}-linux-amd64.zip Quattro
+          rm -rf Quattro
           ####
-          mv linux-arm64 Throne
-          mv Throne/Throne.debug debug/Throne-${{ github.event.inputs.tag }}-linux-arm64.debug
-          zip -9 -r Throne-${{ github.event.inputs.tag }}-linux-arm64.zip Throne
-          rm -rf Throne
+          mv linux-arm64 Quattro
+          mv Quattro/Quattro.debug debug/Quattro-${{ github.event.inputs.tag }}-linux-arm64.debug
+          zip -9 -r Quattro-${{ github.event.inputs.tag }}-linux-arm64.zip Quattro
+          rm -rf Quattro
           ####
-          mv windows-amd64 Throne
-          mv Throne/Throne.pdb debug/Throne-${{ github.event.inputs.tag }}-windows-amd64.pdb
-          zip -9 -r Throne-${{ github.event.inputs.tag }}-windows64.zip Throne
-          rm -rf Throne
+          mv windows-amd64 Quattro
+          mv Quattro/Quattro.pdb debug/Quattro-${{ github.event.inputs.tag }}-windows-amd64.pdb
+          zip -9 -r Quattro-${{ github.event.inputs.tag }}-windows-amd64.zip Quattro
+          rm -rf Quattro
           ####
-          mv windows-arm64 Throne
-          mv Throne/Throne.pdb debug/Throne-${{ github.event.inputs.tag }}-windows-arm64.pdb
-          zip -9 -r Throne-${{ github.event.inputs.tag }}-windows-arm64.zip Throne
-          rm -rf Throne
+          mv windows-arm64 Quattro
+          mv Quattro/Quattro.pdb debug/Quattro-${{ github.event.inputs.tag }}-windows-arm64.pdb
+          zip -9 -r Quattro-${{ github.event.inputs.tag }}-windows-arm64.zip Quattro
+          rm -rf Quattro
           ####
-          mv windowslegacy-386 Throne
-          mv Throne/Throne.pdb debug/Throne-${{ github.event.inputs.tag }}-windowslegacy-386.pdb
-          zip -9 -r Throne-${{ github.event.inputs.tag }}-windows32.zip Throne
-          rm -rf Throne
+          mv windowslegacy-386 Quattro
+          mv Quattro/Quattro.pdb debug/Quattro-${{ github.event.inputs.tag }}-windowslegacy-386.pdb
+          zip -9 -r Quattro-${{ github.event.inputs.tag }}-windowslegacy-386.zip Quattro
+          rm -rf Quattro
           ####
-          mv windowslegacy-amd64 Throne
-          mv Throne/Throne.pdb debug/Throne-${{ github.event.inputs.tag }}-windowslegacy-amd64.pdb
-          zip -9 -r Throne-${{ github.event.inputs.tag }}-windowslegacy64.zip Throne
-          rm -rf Throne
+          mv windowslegacy-amd64 Quattro
+          mv Quattro/Quattro.pdb debug/Quattro-${{ github.event.inputs.tag }}-windowslegacy-amd64.pdb
+          zip -9 -r Quattro-${{ github.event.inputs.tag }}-windowslegacy-amd64.zip Quattro
+          rm -rf Quattro
           ####
-          mkdir Throne
-          mv darwin-arm64/Throne.app Throne/Throne.app
-          mv Throne/Throne.app/Contents/MacOS/Throne.dSYM debug/Throne-${{ github.event.inputs.tag }}-macos-arm64.dSYM
-          zip -9 --symlinks -r Throne-${{ github.event.inputs.tag }}-macos-arm64.zip Throne
+          mkdir Quattro
+          mv darwin-arm64/Quattro.app Quattro/Quattro.app
+          mv Quattro/Quattro.app/Contents/MacOS/Quattro.dSYM debug/Quattro-${{ github.event.inputs.tag }}-macos-arm64.dSYM
+          zip -9 --symlinks -r Quattro-${{ github.event.inputs.tag }}-macos-arm64.zip Quattro
           rm -rf darwin-arm64
-          rm -rf Throne
+          rm -rf Quattro
           ####
-          mkdir Throne
-          mv darwin-amd64/Throne.app Throne/Throne.app
-          mv Throne/Throne.app/Contents/MacOS/Throne.dSYM debug/Throne-${{ github.event.inputs.tag }}-macos-amd64.dSYM
-          zip -9 --symlinks -r Throne-${{ github.event.inputs.tag }}-macos-amd64.zip Throne
+          mkdir Quattro
+          mv darwin-amd64/Quattro.app Quattro/Quattro.app
+          mv Quattro/Quattro.app/Contents/MacOS/Quattro.dSYM debug/Quattro-${{ github.event.inputs.tag }}-macos-amd64.dSYM
+          zip -9 --symlinks -r Quattro-${{ github.event.inputs.tag }}-macos-amd64.zip Quattro
           rm -rf darwin-amd64
-          rm -rf Throne
+          rm -rf Quattro
           ####
-          mkdir Throne
-          mv darwinlegacy-amd64/Throne.app Throne/Throne.app
-          mv Throne/Throne.app/Contents/MacOS/Throne.dSYM debug/Throne-${{ github.event.inputs.tag }}-macoslegacy-amd64.dSYM
-          zip -9 --symlinks -r Throne-${{ github.event.inputs.tag }}-macoslegacy-amd64.zip Throne
+          mkdir Quattro
+          mv darwinlegacy-amd64/Quattro.app Quattro/Quattro.app
+          mv Quattro/Quattro.app/Contents/MacOS/Quattro.dSYM debug/Quattro-${{ github.event.inputs.tag }}-macoslegacy-amd64.dSYM
+          zip -9 --symlinks -r Quattro-${{ github.event.inputs.tag }}-macoslegacy-amd64.zip Quattro
           rm -rf darwinlegacy-amd64
-          rm -rf Throne
+          rm -rf Quattro
+          ####
+          for archive in Quattro-*.zip; do
+            sha256sum "$archive" > "$archive.sha256"
+          done
           ####
           zip -9 -r debug-symbols.zip debug
       - name: Uploading Debug Artifact

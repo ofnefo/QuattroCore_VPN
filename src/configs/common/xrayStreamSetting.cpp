@@ -895,7 +895,7 @@ namespace Configs {
 
     BuildResult xrayStreamSetting::Build() {
         // Egress interface binding and outbound domain resolution are wired onto
-        // the Xray instance after creation (ThroneWiring), not baked into the
+        // the Xray instance after creation (QuattroWiring), not baked into the
         // config, so no sockopt is emitted here.
         return {ExportToJson(), ""};
     }

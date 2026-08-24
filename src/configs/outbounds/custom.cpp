@@ -80,7 +80,7 @@ namespace Configs
             return p == "freedom" || p == "blackhole" || p == "dns" || p == "loopback";
         }
 
-        // Xray isn't backed by Throne's parsers, so read the raw fields directly.
+        // Xray isn't backed by Quattro's parsers, so read the raw fields directly.
         SecurityInfo analyzeXrayOutbound(const QJsonObject& o)
         {
             const auto protocol = o["protocol"].toString();

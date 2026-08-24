@@ -9,7 +9,7 @@
 #include <QStandardPaths>
 #include <QTextStream>
 
-static const QString kDesktopId = "throne-url-handler.desktop";
+static const QString kDesktopId = "quattro-url-handler.desktop";
 
 // For AppImage the launcher must point at the outer image ($APPIMAGE), not the
 // extracted binary inside the mount, which disappears after exit.
@@ -24,14 +24,14 @@ static QString desktopFilePath() {
     return dir + "/" + kDesktopId;
 }
 
-// "throne" is in no icon theme for the /opt and AppImage layouts, so unpack a copy
+// "quattro" is in no icon theme for the /opt and AppImage layouts, so unpack a copy
 // and reference it by absolute path.
 static QString iconTarget() {
     const QString dir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    const QString path = dir + "/throne.png";
+    const QString path = dir + "/quattro.png";
     QDir().mkpath(dir);
     QFile::remove(path);
-    return QFile::copy(":/Throne/Throne.png", path) ? path : QStringLiteral("throne");
+    return QFile::copy(":/Quattro/Quattro.png", path) ? path : QStringLiteral("quattro");
 }
 
 QString UrlScheme_DesiredState() {
@@ -47,10 +47,10 @@ void UrlScheme_Apply() {
         QTextStream ts(&f);
         ts << "[Desktop Entry]\n"
            << "Type=Application\n"
-           << "Name=Throne\n"
+           << "Name=Quattro\n"
            << "Icon=" << iconTarget() << "\n"
            << "Exec=\"" << execTarget() << "\" %U\n"
-           << "MimeType=x-scheme-handler/throne;application/json;application/yaml;text/yaml;text/plain;\n"
+           << "MimeType=x-scheme-handler/quattro;application/json;application/yaml;text/yaml;text/plain;\n"
            << "Terminal=false\n"
            << "NoDisplay=true\n";
         ts.flush();
@@ -61,5 +61,5 @@ void UrlScheme_Apply() {
     // may be absent on minimal systems; execute() just returns nonzero then.
     const QString appsDir = QStandardPaths::writableLocation(QStandardPaths::ApplicationsLocation);
     QProcess::execute("update-desktop-database", {appsDir});
-    QProcess::execute("xdg-mime", {"default", kDesktopId, "x-scheme-handler/throne"});
+    QProcess::execute("xdg-mime", {"default", kDesktopId, "x-scheme-handler/quattro"});
 }

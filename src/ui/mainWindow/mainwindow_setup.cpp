@@ -143,7 +143,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     AutoRun_FixTaskIfNeeded();
     AutoRun_MigrateIfNeeded();
 
-    // register the throne:// URL scheme and the config file handler (self-heals if
+    // register the quattro:// URL scheme and the config file handler (self-heals if
     // the install was moved)
     UrlScheme_RegisterIfNeeded();
 
@@ -208,13 +208,13 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 
     // Prepare core
     auto core_path = QApplication::applicationDirPath() + "/";
-    core_path += "ThroneCore";
+    core_path += "QuattroCore";
 
     bool coreDebugMode = (Configs::dataManager->settingsRepo->log_level == "debug");
 
     // Create IPC server with a random UUID name
     Configs::dataManager->settingsRepo->core_socket_name =
-        "throneIPC-" + QUuid::createUuid().toString(QUuid::WithoutBraces);
+        "quattroIPC-" + QUuid::createUuid().toString(QUuid::WithoutBraces);
     core_server = new QLocalServer(this);
     core_server->setSocketOptions(QLocalServer::UserAccessOption);
     if (!core_server->listen(Configs::dataManager->settingsRepo->core_socket_name)) {
@@ -321,11 +321,11 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     }
 
     // software_name
-    software_name = "Throne";
+    software_name = "Quattro";
     software_core_name = "sing-box";
     //
     if (auto dashDir = QDir("dashboard"); !dashDir.exists() && QDir().mkdir("dashboard")) {
-        if (auto dashFile = QFile(":/Throne/dashboard-notice.html"); dashFile.exists() && dashFile.open(QIODevice::ReadOnly))
+        if (auto dashFile = QFile(":/Quattro/dashboard-notice.html"); dashFile.exists() && dashFile.open(QIODevice::ReadOnly))
         {
             auto data = dashFile.readAll();
             if (auto dest = QFile("dashboard/index.html"); dest.open(QIODevice::Truncate | QIODevice::WriteOnly))
@@ -378,7 +378,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
         m_autoSelectorDialog->activateWindow();
     });
     connect(ui->actionCheck_For_Update, &QAction::triggered, this, [=,this] { runOnNewThread([=,this] { CheckUpdate(); }); });
-    if (!QFile::exists(QApplication::applicationDirPath() + "/updater") && !QFile::exists(QApplication::applicationDirPath() + "/updater.exe"))
+    if (!QFile::exists(QApplication::applicationDirPath() + "/QuattroUpdater") &&
+        !QFile::exists(QApplication::applicationDirPath() + "/QuattroUpdater.exe"))
     {
         ui->actionCheck_For_Update->setDisabled(true);
     }
@@ -1118,7 +1119,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     // The runner persists each job's last-run time, so closing the app past the
     // interval still triggers an update next launch instead of resetting the clock.
     {
-        auto* runner = Throne::PeriodicRunner::instance();
+        auto* runner = Quattro::PeriodicRunner::instance();
         // Settings store the interval sign-encoded (negative = disabled); < 30 min is
         // treated as off, matching the "invalid if less than 30" UI hint.
         const auto minutesOf = [](int v) { return v >= 30 ? v : 0; };
@@ -1143,6 +1144,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
             [] { UI_update_all_remote_routes(true); },
         });
     }
+
+    setupQuattroDashboard();
 
     if (!Configs::dataManager->settingsRepo->flag_tray) show();
 

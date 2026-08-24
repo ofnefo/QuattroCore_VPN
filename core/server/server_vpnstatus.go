@@ -1,8 +1,8 @@
 package main
 
 import (
-	"ThroneCore/gen"
-	"ThroneCore/internal/boxbox"
+	"QuattroCore/gen"
+	"QuattroCore/internal/boxbox"
 	"context"
 	"net/netip"
 	"slices"

@@ -2,11 +2,11 @@
 
 #include <QString>
 
-// Registration of the "throne://" URL scheme with the OS, and of the app as a
-// handler for config files ("Open with Throne"). Both describe the same install
+// Registration of the "quattro://" URL scheme with the OS, and of the app as a
+// handler for config files ("Open with Quattro"). Both describe the same install
 // to the same OS registry, so they are written together.
 //
-// The file handling is additive everywhere: Throne joins the "open with" list of
+// The file handling is additive everywhere: Quattro joins the "open with" list of
 // the common config types, and never takes over an extension the user already
 // has an application for.
 //

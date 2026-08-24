@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"ThroneCore/internal/boxbox"
+	"QuattroCore/internal/boxbox"
 
 	"github.com/sagernet/sing-box/adapter"
 )

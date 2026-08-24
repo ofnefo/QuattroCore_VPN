@@ -380,7 +380,7 @@ It stays a preference, not a lock: if that profile stops working the selector st
     </message>
     <message>
         <source>Always Start as Standard User</source>
-        <translation>Всегда запускать Throne от имени обычного пользователя</translation>
+        <translation>Всегда запускать Quattro от имени обычного пользователя</translation>
     </message>
     <message>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Do not attempt to start as Admin unless explicitly requested&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
@@ -731,16 +731,16 @@ It stays a preference, not a lock: if that profile stops working the selector st
         <translation>Пользовательские иконки</translation>
     </message>
     <message>
-        <source>Throne Backup (*.thrbackup)</source>
-        <translation>Резервная копия Throne (*.thrbackup)</translation>
+        <source>Quattro Backup (*.thrbackup)</source>
+        <translation>Резервная копия Quattro (*.thrbackup)</translation>
     </message>
     <message>
         <source>Select at least one part to include in the backup.</source>
         <translation>Выберите хотя бы один компонент для создания резервной копии.</translation>
     </message>
     <message>
-        <source>Backup restored successfully. Throne will now restart for the changes to take effect.</source>
-        <translation>Резервная копия успешно восстановлена. Throne будет перезапущен для применения изменений.</translation>
+        <source>Backup restored successfully. Quattro will now restart for the changes to take effect.</source>
+        <translation>Резервная копия успешно восстановлена. Quattro будет перезапущен для применения изменений.</translation>
     </message>
     <message>
         <source>Backup created on %1.
@@ -799,8 +799,8 @@ Included: %2</source>
         <translation>Не удается открыть файл резервной копии: %1</translation>
     </message>
     <message>
-        <source>Not a valid Throne backup file.</source>
-        <translation>Это недействительный файл резервной копии Throne.</translation>
+        <source>Not a valid Quattro backup file.</source>
+        <translation>Это недействительный файл резервной копии Quattro.</translation>
     </message>
     <message>
         <source>Unsupported backup format version: %1.
@@ -814,9 +814,9 @@ This backup may have been created with a newer version of the application.</sour
     </message>
     <message>
         <source>Each selected part replaces the current data. This cannot be undone.
-Throne will restart to complete the restore.</source>
+Quattro will restart to complete the restore.</source>
         <translation>Каждая выбранная часть заменяет текущие данные. Это невозможно отменить.
-Для завершения восстановления Throne перезапустится.</translation>
+Для завершения восстановления Quattro перезапустится.</translation>
     </message>
     <message>
         <source>Select at least one part to restore.</source>
@@ -1988,8 +1988,8 @@ For more information, see the document &quot;Configuration/DNS&quot;.</source>
         <translation>Обновить выбранные</translation>
     </message>
     <message>
-        <source>Paste a Throne route link, a remoteRoute link, a base64 blob, or a JSON rule array</source>
-        <translation>Вставьте ссылку маршрута Throne, ссылку remoteRoute, base64 или массив правил JSON</translation>
+        <source>Paste a Quattro route link, a remoteRoute link, a base64 blob, or a JSON rule array</source>
+        <translation>Вставьте ссылку маршрута Quattro, ссылку remoteRoute, base64 или массив правил JSON</translation>
     </message>
     <message>
         <source>Add remote routing profiles</source>
@@ -2826,8 +2826,8 @@ https://matsuridayo.github.io/n-configuration/#vpn-tun</translation>
         <translation>Xray Outbound JSON — пожалуйста, прочтите документацию.</translation>
     </message>
     <message>
-        <source>Xray full config (Throne adds a socks inbound and uses sing-box for tun/routing).</source>
-        <translation>Полная конфигурация Xray (Throne добавляет socks inbound и использует sing-box для tun / маршрутизации).</translation>
+        <source>Xray full config (Quattro adds a socks inbound and uses sing-box for tun/routing).</source>
+        <translation>Полная конфигурация Xray (Quattro добавляет socks inbound и использует sing-box для tun / маршрутизации).</translation>
     </message>
     <message>
         <source>Please fill the complete config.</source>
@@ -4462,8 +4462,8 @@ Please try again.</source>
         <translation>Outbound</translation>
     </message>
     <message>
-        <source>Please run Throne as admin</source>
-        <translation>Пожалуйста, запустите Throne от имени администратора</translation>
+        <source>Please run Quattro as admin</source>
+        <translation>Пожалуйста, запустите Quattro от имени администратора</translation>
     </message>
     <message>
         <source>Click To Sort By Protocol</source>
@@ -4891,8 +4891,8 @@ Release note:
         <translation>Слабый шифр</translation>
     </message>
     <message>
-        <source>[Warn] Throne did not shut down cleanly last time. Diagnostics were saved to: %1</source>
-        <translation>[Предупреждение] В прошлый раз Throne не завершил работу корректно. Результаты диагностики сохранены в: %1</translation>
+        <source>[Warn] Quattro did not shut down cleanly last time. Diagnostics were saved to: %1</source>
+        <translation>[Предупреждение] В прошлый раз Quattro не завершил работу корректно. Результаты диагностики сохранены в: %1</translation>
     </message>
     <message>
         <source>An auto selector cannot be a hop in a chain: it moves to a different server on its own whenever one degrades.</source>
@@ -5145,11 +5145,11 @@ Release note:
     </message>
     <message>
         <source>Use the route object exactly as written (outbound ids are still resolved to tags).
-Throne will NOT add its DNS-hijack or xray bridge plumbing, so DNS, chained/xray
-outbounds and other Throne features may break. For advanced users only.</source>
+Quattro will NOT add its DNS-hijack or xray bridge plumbing, so DNS, chained/xray
+outbounds and other Quattro features may break. For advanced users only.</source>
         <translation>Использовать raw-профиль маршрутизации точно так, как написано (outbounds идентификаторы по-прежнему преобразуются в теги).
-В Throne не будут добавлены функции DNS-hijack или xray bridge, поэтому могут нарушаться функции DNS, chained/xray
-outbounds и другие функции Throne. Только для опытных пользователей.</translation>
+В Quattro не будут добавлены функции DNS-hijack или xray bridge, поэтому могут нарушаться функции DNS, chained/xray
+outbounds и другие функции Quattro. Только для опытных пользователей.</translation>
     </message>
     <message>
         <source>Valid JSON</source>
@@ -5207,8 +5207,8 @@ outbounds и другие функции Throne. Только для опытн�
         <translation>URL</translation>
     </message>
     <message>
-        <source>https://... (throne://route link, base64, or JSON)</source>
-        <translation>https://... (throne://route link, base64, или JSON)</translation>
+        <source>https://... (quattro://route link, base64, or JSON)</source>
+        <translation>https://... (quattro://route link, base64, или JSON)</translation>
     </message>
     <message>
         <source>Re-fetch this profile from the URL when subscriptions auto-update.

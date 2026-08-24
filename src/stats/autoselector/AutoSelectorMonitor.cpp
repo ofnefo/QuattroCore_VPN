@@ -82,7 +82,7 @@ namespace Stats
         active = false;
         if (infos.isEmpty()) return;
 
-        // Throne only ever builds one selector per config (it is the profile
+        // Quattro only ever builds one selector per config (it is the profile
         // being started); take the first and ignore any future extras.
         const auto &info = infos.first();
         groupTag = info.groupTag;

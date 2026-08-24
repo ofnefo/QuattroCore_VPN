@@ -742,16 +742,16 @@ It stays a preference, not a lock: if that profile stops working the selector st
         <translation>自定义图标</translation>
     </message>
     <message>
-        <source>Throne Backup (*.thrbackup)</source>
-        <translation>Throne 备份 (*.thrbackup)</translation>
+        <source>Quattro Backup (*.thrbackup)</source>
+        <translation>Quattro 备份 (*.thrbackup)</translation>
     </message>
     <message>
         <source>Select at least one part to include in the backup.</source>
         <translation>至少选择一个部分以包含在备份中。</translation>
     </message>
     <message>
-        <source>Backup restored successfully. Throne will now restart for the changes to take effect.</source>
-        <translation>备份成功恢复。 Throne 现在将要重启以使得更改生效。</translation>
+        <source>Backup restored successfully. Quattro will now restart for the changes to take effect.</source>
+        <translation>备份成功恢复。 Quattro 现在将要重启以使得更改生效。</translation>
     </message>
     <message>
         <source>Backup created on %1.
@@ -810,8 +810,8 @@ Included: %2</source>
         <translation>无法打开备份文件: %1</translation>
     </message>
     <message>
-        <source>Not a valid Throne backup file.</source>
-        <translation>不是有效的 Throne 备份文件。</translation>
+        <source>Not a valid Quattro backup file.</source>
+        <translation>不是有效的 Quattro 备份文件。</translation>
     </message>
     <message>
         <source>Unsupported backup format version: %1.
@@ -825,8 +825,8 @@ This backup may have been created with a newer version of the application.</sour
     </message>
     <message>
         <source>Each selected part replaces the current data. This cannot be undone.
-Throne will restart to complete the restore.</source>
-        <translation>每个选定的部分会替换当前的数据。 这个操作无法撤销。 Throne 将会重启以完成恢复。</translation>
+Quattro will restart to complete the restore.</source>
+        <translation>每个选定的部分会替换当前的数据。 这个操作无法撤销。 Quattro 将会重启以完成恢复。</translation>
     </message>
     <message>
         <source>Select at least one part to restore.</source>
@@ -1914,8 +1914,8 @@ For more information, see the document &quot;Configuration/DNS&quot;.</source>
         <translation>更新选定项</translation>
     </message>
     <message>
-        <source>Paste a Throne route link, a remoteRoute link, a base64 blob, or a JSON rule array</source>
-        <translation>粘贴一个 Throne 路由链接，一个 remoteRoute 链接，一个 base64 blob 或者一个 JSON 规则数组</translation>
+        <source>Paste a Quattro route link, a remoteRoute link, a base64 blob, or a JSON rule array</source>
+        <translation>粘贴一个 Quattro 路由链接，一个 remoteRoute 链接，一个 base64 blob 或者一个 JSON 规则数组</translation>
     </message>
     <message>
         <source>Add remote routing profiles</source>
@@ -2784,8 +2784,8 @@ https://matsuridayo.github.io/n-configuration/#vpn-tun</translation>
         <translation>Xray Outbound JSON，详情请阅读 Xray 文档。</translation>
     </message>
     <message>
-        <source>Xray full config (Throne adds a socks inbound and uses sing-box for tun/routing).</source>
-        <translation>Xray 完整配置 (Throne 添加一个 socks inbound (套接字入站)并把 sing-box 用于 tun / 路由)。</translation>
+        <source>Xray full config (Quattro adds a socks inbound and uses sing-box for tun/routing).</source>
+        <translation>Xray 完整配置 (Quattro 添加一个 socks inbound (套接字入站)并把 sing-box 用于 tun / 路由)。</translation>
     </message>
     <message>
         <source>Please fill the complete config.</source>
@@ -4382,8 +4382,8 @@ Please start your profile again.</source>
 </translation>
     </message>
     <message>
-        <source>Please run Throne as admin</source>
-        <translation>请以管理员身份运行 Throne</translation>
+        <source>Please run Quattro as admin</source>
+        <translation>请以管理员身份运行 Quattro</translation>
     </message>
     <message>
         <source>Click To Sort By Protocol</source>
@@ -4911,8 +4911,8 @@ Release note:
         <translation>弱加密</translation>
     </message>
     <message>
-        <source>[Warn] Throne did not shut down cleanly last time. Diagnostics were saved to: %1</source>
-        <translation>[警告] 上次 Throne 没有正常干净的关闭。诊断信息已被保存到: %1</translation>
+        <source>[Warn] Quattro did not shut down cleanly last time. Diagnostics were saved to: %1</source>
+        <translation>[警告] 上次 Quattro 没有正常干净的关闭。诊断信息已被保存到: %1</translation>
     </message>
     <message>
         <source>An auto selector cannot be a hop in a chain: it moves to a different server on its own whenever one degrades.</source>
@@ -5165,11 +5165,11 @@ Release note:
     </message>
     <message>
         <source>Use the route object exactly as written (outbound ids are still resolved to tags).
-Throne will NOT add its DNS-hijack or xray bridge plumbing, so DNS, chained/xray
-outbounds and other Throne features may break. For advanced users only.</source>
+Quattro will NOT add its DNS-hijack or xray bridge plumbing, so DNS, chained/xray
+outbounds and other Quattro features may break. For advanced users only.</source>
         <translation>按原样使用路由对象 (outbounds 标识符仍被解析为标记)。
-在 Throne 中「不会」添加它的 DNS-hijack (DNS劫持)或 xray bridge plumbing (桥接)，所以 DNS、链式/xray
-出口和其它 Throne 功能可能会失效。仅限高级用户。</translation>
+在 Quattro 中「不会」添加它的 DNS-hijack (DNS劫持)或 xray bridge plumbing (桥接)，所以 DNS、链式/xray
+出口和其它 Quattro 功能可能会失效。仅限高级用户。</translation>
     </message>
     <message>
         <source>Valid JSON</source>
@@ -5227,8 +5227,8 @@ outbounds and other Throne features may break. For advanced users only.</source>
         <translation>URL</translation>
     </message>
     <message>
-        <source>https://... (throne://route link, base64, or JSON)</source>
-        <translation>https://... (throne://路由链接, base64 或 JSON)</translation>
+        <source>https://... (quattro://route link, base64, or JSON)</source>
+        <translation>https://... (quattro://路由链接, base64 或 JSON)</translation>
     </message>
     <message>
         <source>Re-fetch this profile from the URL when subscriptions auto-update.

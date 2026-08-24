@@ -444,7 +444,7 @@ namespace Configs {
 
     QJsonObject RouteProfile::ToShareObject(QString* warnings) {
         QJsonObject root;
-        root["kind"] = "throne-route-profile";
+        root["kind"] = "quattro-route-profile";
         root["v"] = 1;
         root["name"] = name;
         QJsonArray endpointsArr;
@@ -487,7 +487,7 @@ namespace Configs {
     QString RouteProfile::ToShareLink(QString* warnings) {
         const auto json = QJsonDocument(ToShareObject(warnings)).toJson(QJsonDocument::Compact);
         const auto b64 = json.toBase64(QByteArray::Base64UrlEncoding | QByteArray::OmitTrailingEquals);
-        return QStringLiteral("throne://route/") + QString::fromLatin1(b64);
+        return QStringLiteral("quattro://route/") + QString::fromLatin1(b64);
     }
 
     std::shared_ptr<RouteProfile> RouteProfile::FromShareInput(const QString& input, QString* fatalError, QString* warnings, bool* wasOldArray, bool materializeEndpoints) {
@@ -498,8 +498,8 @@ namespace Configs {
             return nullptr;
         }
 
-        // throne://route/<base64> deep link
-        if (text.startsWith("throne://route/", Qt::CaseInsensitive)) {
+        // quattro://route/<base64> deep link
+        if (text.startsWith("quattro://route/", Qt::CaseInsensitive)) {
             const QUrl u(text);
             if (!u.isValid()) {
                 fatalError->append("Deep link is invalid");
@@ -520,14 +520,14 @@ namespace Configs {
                 doc = QJsonDocument::fromJson(QByteArray::fromBase64(text.toUtf8()));
         }
         if (doc.isNull()) {
-            fatalError->append("Input is not valid JSON, base64, or a Throne route link");
+            fatalError->append("Input is not valid JSON, base64, or a Quattro route link");
             return nullptr;
         }
 
         // New schema: a tagged object carrying the whole profile.
         if (doc.isObject()) {
             const QJsonObject root = doc.object();
-            if (root.value("kind").toString() != QStringLiteral("throne-route-profile")) {
+            if (root.value("kind").toString() != QStringLiteral("quattro-route-profile")) {
                 fatalError->append("Unrecognized route object");
                 return nullptr;
             }
@@ -591,7 +591,7 @@ namespace Configs {
     QList<std::shared_ptr<RouteProfile>> RouteProfile::FromRemoteRoutesLink(const QString& input, bool* wasRemoteRouteLink, QString* error) {
         if (wasRemoteRouteLink) *wasRemoteRouteLink = false;
         const QString text = input.trimmed();
-        if (!text.startsWith("throne://remoteroute/", Qt::CaseInsensitive)) return {};
+        if (!text.startsWith("quattro://remoteroute/", Qt::CaseInsensitive)) return {};
         if (wasRemoteRouteLink) *wasRemoteRouteLink = true;
 
         const QUrl u(text);
@@ -636,7 +636,7 @@ namespace Configs {
             QJsonObject obj;
             obj["action"] = "reject";
             QJsonArray jarray;
-            jarray.append("throne-adblocksingbox");
+            jarray.append("quattro-adblocksingbox");
             obj["rule_set"] = jarray;
             return obj;
         };

@@ -46,10 +46,10 @@ namespace Configs {
                     }
                 }
 
-                // Fields the V2RayN schema cannot express, carried in a Throne-only key
+                // Fields the V2RayN schema cannot express, carried in a Quattro-only key
                 // as the same query string the extended vmess:// link used to hold; the
                 // dummy authority is there only to satisfy QUrl, nothing reads it.
-                if (const auto extra = objN["throneExtra"].toString(); !extra.isEmpty()) {
+                if (const auto extra = objN["quattroExtra"].toString(); !extra.isEmpty()) {
                     const QString extraLink = "vmess://x@127.0.0.1:1?" + extra;
                     transport->ParseFromLink(extraLink);
                     multiplex->ParseFromLink(extraLink);
@@ -162,7 +162,7 @@ namespace Configs {
             {"fp", tls->utls->fingerPrint},
         };
         if (tls->insecure) object["allowInsecure"] = QStringLiteral("1");
-        if (!extra.isEmpty()) object["throneExtra"] = extra.toString(QUrl::FullyEncoded);
+        if (!extra.isEmpty()) object["quattroExtra"] = extra.toString(QUrl::FullyEncoded);
         const auto payload = QJsonDocument(object).toJson(QJsonDocument::Compact).toBase64();
         return QStringLiteral("vmess://") + QString::fromLatin1(payload);
     }
