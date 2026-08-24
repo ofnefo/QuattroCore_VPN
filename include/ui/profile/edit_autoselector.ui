@@ -152,7 +152,7 @@
             <string>e.g. DE,NL,FR</string>
            </property>
            <property name="toolTip">
-            <string>Comma-separated country codes, empty means any. Uses the country found by the IP test, so profiles that were never IP-tested are skipped while this is set.</string>
+            <string>Comma-separated country codes, empty means any. Prefix a code with ! to exclude it (for example !RU). Uses the country found by the IP test.</string>
            </property>
           </widget>
          </item>

@@ -13,10 +13,21 @@
 #endif
 
 namespace Configs {
-    // Loopback and broadcast are deliberately absent: they are bypassed unconditionally, because
-    // routing them into the tun breaks the sing-box <-> Xray bridges and the local DNS server.
+    // IPv4 loopback and limited broadcast are deliberately absent: they are bypassed
+    // unconditionally, because routing them into the tun breaks the local core bridges and DNS.
     inline QStringList defaultTunPrivateRanges() {
-        return {"10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "169.254.0.0/16", "224.0.0.0/4"};
+        return {
+            "10.0.0.0/8",
+            "100.64.0.0/10",   // CGNAT, including the Tailscale address space
+            "169.254.0.0/16",  // IPv4 link-local
+            "172.16.0.0/12",
+            "192.168.0.0/16",
+            "224.0.0.0/4",     // IPv4 multicast (mDNS, discovery, printers)
+            "::1/128",
+            "fc00::/7",        // IPv6 unique-local
+            "fe80::/10",       // IPv6 link-local
+            "ff00::/8",        // IPv6 multicast
+        };
     }
 
     class SettingsRepo {

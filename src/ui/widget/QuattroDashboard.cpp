@@ -105,7 +105,7 @@ QuattroDashboard::QuattroDashboard(QWidget *parent) : QWidget(parent) {
         tr("Российские сервисы идут напрямую, нужные приложения — через VPN."), hero);
     heroHint->setObjectName(QStringLiteral("muted"));
     heroHint->setWordWrap(true);
-    m_activeServer = new QLabel(tr("Авто • самый быстрый сервер"), hero);
+    m_activeServer = new QLabel(tr("Авто • самый быстрый зарубежный сервер"), hero);
     m_activeServer->setObjectName(QStringLiteral("serverLabel"));
     m_activeServer->setWordWrap(true);
     heroText->addWidget(heroTitle);
@@ -139,10 +139,15 @@ QuattroDashboard::QuattroDashboard(QWidget *parent) : QWidget(parent) {
     connectionTitle->setObjectName(QStringLiteral("cardTitle"));
     connectionLayout->addWidget(connectionTitle);
 
-    auto *modeRow = new QHBoxLayout;
-    modeRow->setSpacing(8);
+    auto *modeSelector = new QFrame(m_connectionCard);
+    modeSelector->setObjectName(QStringLiteral("modeSelector"));
+    auto *modeRow = new QHBoxLayout(modeSelector);
+    modeRow->setContentsMargins(4, 4, 4, 4);
+    modeRow->setSpacing(4);
     m_tunButton = secondaryButton(QStringLiteral("TUN"), m_connectionCard);
     m_proxyButton = secondaryButton(tr("Системный прокси"), m_connectionCard);
+    m_tunButton->setProperty("kind", "segment");
+    m_proxyButton->setProperty("kind", "segment");
     m_tunButton->setCheckable(true);
     m_proxyButton->setCheckable(true);
     auto *modeGroup = new QButtonGroup(this);
@@ -151,7 +156,7 @@ QuattroDashboard::QuattroDashboard(QWidget *parent) : QWidget(parent) {
     modeGroup->addButton(m_proxyButton);
     modeRow->addWidget(m_tunButton);
     modeRow->addWidget(m_proxyButton);
-    connectionLayout->addLayout(modeRow);
+    connectionLayout->addWidget(modeSelector);
     connect(m_tunButton, &QPushButton::clicked, this, [this] { emit modeChanged(Mode::Tun); });
     connect(m_proxyButton, &QPushButton::clicked, this, [this] { emit modeChanged(Mode::SystemProxy); });
 
@@ -173,12 +178,17 @@ QuattroDashboard::QuattroDashboard(QWidget *parent) : QWidget(parent) {
     auto *routingTitle = new QLabel(tr("Маршрутизация"), m_routingCard);
     routingTitle->setObjectName(QStringLiteral("cardTitle"));
     routingLayout->addWidget(routingTitle);
-    m_russiaBypass = new QCheckBox(tr("Russia Bypass"), m_routingCard);
-    m_russiaBypass->setToolTip(tr("Российские домены и IP идут напрямую"));
+    m_russiaBypass = new QCheckBox(tr("Russia Bypass  •  встроен"), m_routingCard);
+    m_russiaBypass->setToolTip(tr("Российские домены и IP идут напрямую; наборы правил обновляются автоматически"));
     m_autoStart = new QCheckBox(tr("Автозапуск и подключение"), m_routingCard);
     m_autoStart->setToolTip(tr("Quattro запустится в трее и восстановит режим и сервер"));
     routingLayout->addWidget(m_russiaBypass);
     routingLayout->addWidget(m_autoStart);
+    auto *localDirect = new QLabel(tr("✓  Локальная сеть, принтеры и Tailscale — напрямую"), m_routingCard);
+    localDirect->setObjectName(QStringLiteral("localDirect"));
+    localDirect->setWordWrap(true);
+    localDirect->setToolTip(tr("RFC1918, CGNAT/Tailscale, link-local и multicast не направляются в VPN"));
+    routingLayout->addWidget(localDirect);
     auto *routingButtons = new QHBoxLayout;
     routingButtons->setSpacing(8);
     auto *channels = secondaryButton(tr("Каналы"), m_routingCard);
@@ -303,10 +313,24 @@ QuattroDashboard::QuattroDashboard(QWidget *parent) : QWidget(parent) {
         QLabel#statusDot { color: #697586; }
         QLabel#statusText { color: #e8ecf2; font-weight: 650; }
         QLabel#statusBadge { color: #67dce9; font-size: 12px; font-weight: 600; }
-        QPushButton {
-            min-height: 40px;
+        QLabel#localDirect {
+            color: #89d9bd;
+            background: #172a26;
+            border: 1px solid #285244;
             border-radius: 9px;
-            padding: 0 14px;
+            padding: 8px 10px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        QFrame#modeSelector {
+            background: #131922;
+            border: 1px solid #303946;
+            border-radius: 11px;
+        }
+        QPushButton {
+            min-height: 42px;
+            border-radius: 10px;
+            padding: 0 16px;
             font-weight: 650;
         }
         QPushButton[kind="secondary"] {
@@ -314,32 +338,50 @@ QuattroDashboard::QuattroDashboard(QWidget *parent) : QWidget(parent) {
             border: 1px solid #3a4553;
             color: #e5eaf0;
         }
-        QPushButton[kind="secondary"]:hover { background: #293442; border-color: #5a6879; }
+        QPushButton[kind="secondary"]:hover { background: #2a3542; border-color: #607084; color: #ffffff; }
+        QPushButton[kind="secondary"]:pressed { background: #171e27; border-color: #31bdd0; }
         QPushButton[kind="secondary"]:checked {
             background: #173c48;
             border-color: #35c7dc;
             color: #72e6f3;
         }
-        QPushButton#primaryButton {
-            background: #17424d;
-            border: 1px solid #2bbfd4;
-            color: #6ce2ef;
+        QPushButton[kind="segment"] {
+            min-height: 36px;
+            background: transparent;
+            border: none;
+            border-radius: 8px;
+            color: #9da8b6;
         }
-        QPushButton#primaryButton:hover { background: #1d515d; }
+        QPushButton[kind="segment"]:hover { background: #1c2530; color: #eef3f7; }
+        QPushButton[kind="segment"]:checked {
+            background: #1b414b;
+            border: 1px solid #32bfd2;
+            color: #70e2ee;
+        }
+        QPushButton#primaryButton {
+            background: #2abed1;
+            border: 1px solid #4ad1e2;
+            color: #07171b;
+            font-weight: 750;
+        }
+        QPushButton#primaryButton:hover { background: #51d4e3; border-color: #72e2ee; }
+        QPushButton#primaryButton:pressed { background: #2198a8; }
         QPushButton#connectButton {
-            background: #f0443e;
-            border: 1px solid #ff6a64;
-            color: #ffffff;
+            background: #2abed1;
+            border: 1px solid #55d7e6;
+            color: #07171b;
             font-size: 15px;
             font-weight: 750;
         }
-        QPushButton#connectButton:hover { background: #ff514a; }
+        QPushButton#connectButton:hover { background: #52d6e5; border-color: #7be7f0; }
+        QPushButton#connectButton:pressed { background: #209aa9; }
         QPushButton#connectButton:disabled { background: #343b46; border-color: #49515d; color: #858e9b; }
         QPushButton#connectButton[connected="true"] {
-            background: #173d31;
-            border-color: #2ac681;
-            color: #68e5aa;
+            background: #3a2327;
+            border-color: #d9545b;
+            color: #ff9ba0;
         }
+        QPushButton#connectButton[connected="true"]:hover { background: #4a292e; border-color: #f16b72; }
         QLineEdit, QComboBox {
             min-height: 40px;
             background: #151b24;
@@ -358,7 +400,20 @@ QuattroDashboard::QuattroDashboard(QWidget *parent) : QWidget(parent) {
             border: 1px solid #3a4553;
             selection-background-color: #17424d;
         }
-        QCheckBox { min-height: 27px; spacing: 9px; color: #e4e8ee; }
+        QCheckBox {
+            min-height: 28px;
+            spacing: 10px;
+            color: #dfe5ec;
+            background: #171e27;
+            border: 1px solid #303946;
+            border-radius: 9px;
+            padding: 7px 10px;
+        }
+        QCheckBox:hover { background: #1d2631; border-color: #4b596b; }
+        QCheckBox:checked { background: #17343d; border-color: #2dbed1; color: #71e3ef; }
+        QCheckBox::indicator { width: 18px; height: 18px; }
+        QCheckBox::indicator:unchecked { image: url(:/qss_icons/dark/rc/checkbox_unchecked@2x.png); }
+        QCheckBox::indicator:checked { image: url(:/qss_icons/dark/rc/checkbox_checked@2x.png); }
         QScrollBar:vertical { background: #141a23; width: 8px; margin: 2px; }
         QScrollBar::handle:vertical { background: #3d4856; border-radius: 4px; min-height: 28px; }
         QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
@@ -414,7 +469,7 @@ void QuattroDashboard::setConnectionState(bool connected, const QString &status,
     m_connectButton->setProperty("connected", connected);
     m_connectButton->style()->unpolish(m_connectButton);
     m_connectButton->style()->polish(m_connectButton);
-    m_activeServer->setText(server.isEmpty() ? tr("Авто • самый быстрый сервер")
+    m_activeServer->setText(server.isEmpty() ? tr("Авто • самый быстрый зарубежный сервер")
                                              : tr("Сервер • %1").arg(server));
     updateConnectionButton();
 }
@@ -426,7 +481,7 @@ void QuattroDashboard::setProfiles(const QList<QPair<int, QString>> &profiles, i
     if (!m_hasProfiles) {
         m_profiles->addItem(tr("Сначала добавьте подписку"), -2);
     } else {
-        if (includeAuto) m_profiles->addItem(tr("Авто — быстрый, без скачков"), -1);
+        if (includeAuto) m_profiles->addItem(tr("Авто — быстрый зарубежный, без скачков"), -1);
         for (const auto &[id, name] : profiles) m_profiles->addItem(name, id);
     }
     const int index = m_profiles->findData(selectedId);

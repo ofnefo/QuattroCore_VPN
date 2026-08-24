@@ -21,7 +21,8 @@ namespace Configs
         {
             QRegularExpression name;
             bool hasName = false;
-            QSet<QString> countries;
+            QSet<QString> includedCountries;
+            QSet<QString> excludedCountries;
         };
 
         MemberFilters buildFilters(const autoSelector *selector)
@@ -33,7 +34,13 @@ namespace Configs
                 filters.hasName = filters.name.isValid();
             }
             for (const auto &code : selector->countryFilter.split(',', Qt::SkipEmptyParts)) {
-                filters.countries.insert(code.trimmed().toUpper());
+                auto normalized = code.trimmed().toUpper();
+                if (normalized.startsWith('!')) {
+                    normalized.removeFirst();
+                    if (!normalized.isEmpty()) filters.excludedCountries.insert(normalized);
+                } else if (!normalized.isEmpty()) {
+                    filters.includedCountries.insert(normalized);
+                }
             }
             return filters;
         }
@@ -80,7 +87,11 @@ namespace Configs
             if (filters.hasName && !filters.name.match(member->outbound->DisplayName()).hasMatch()) {
                 return AutoSelectorSkip::NameFilter;
             }
-            if (!filters.countries.isEmpty() && !filters.countries.contains(member->test_country.toUpper())) {
+            const auto country = member->test_country.toUpper();
+            if (filters.excludedCountries.contains(country)) {
+                return AutoSelectorSkip::CountryFilter;
+            }
+            if (!filters.includedCountries.isEmpty() && !filters.includedCountries.contains(country)) {
                 return AutoSelectorSkip::CountryFilter;
             }
             // Only a *fresh* failure keeps a member out: an old one says nothing

@@ -4,6 +4,7 @@
 #include "include/database/GroupsRepo.h"
 #include "include/database/ProfilesRepo.h"
 #include "include/database/RoutesRepo.h"
+#include "include/database/SettingsRepo.h"
 #include "include/database/entities/RouteRule.h"
 #include "include/sys/AutoRun.hpp"
 #include "include/stats/autoselector/AutoSelectorMonitor.hpp"
@@ -28,8 +29,90 @@
 #include <QUrl>
 #include <QVBoxLayout>
 
+namespace {
+const QString kQuattroRussiaProfileName = QStringLiteral("Quattro • Russia Bypass");
+const QString kQuattroRussiaRuleName = QStringLiteral("Quattro Built-in • Russia direct");
+
+std::shared_ptr<Configs::RouteProfile> ensureQuattroRussiaProfile() {
+    auto &repo = Configs::dataManager->routesRepo;
+    std::shared_ptr<Configs::RouteProfile> profile;
+    for (const auto &candidate : repo->GetAllRouteProfiles()) {
+        if (candidate && candidate->name == kQuattroRussiaProfileName) {
+            profile = candidate;
+            break;
+        }
+    }
+
+    if (!profile) {
+        profile = Configs::RouteProfile::GetDefaultChain();
+        profile->name = kQuattroRussiaProfileName;
+    }
+
+    std::shared_ptr<Configs::RouteRule> managedRule;
+    for (const auto &rule : profile->Rules) {
+        if (rule && rule->name == kQuattroRussiaRuleName) {
+            managedRule = rule;
+            break;
+        }
+    }
+    if (!managedRule) {
+        managedRule = std::make_shared<Configs::RouteRule>();
+        managedRule->name = kQuattroRussiaRuleName;
+        profile->Rules << managedRule;
+    }
+    managedRule->type = Configs::simpleAddressBypass;
+    managedRule->action = QStringLiteral("route");
+    managedRule->outboundID = Configs::directID;
+    managedRule->rule_set = {QStringLiteral("geosite-ru"), QStringLiteral("geoip-ru")};
+
+    profile->isRaw = false;
+    profile->isRemote = false;
+    profile->remoteURL.clear();
+    profile->autoUpdate = false;
+    profile->preventModifications = false;
+    if (profile->id < 0) {
+        if (!repo->AddRouteProfile(profile)) return nullptr;
+    } else if (!repo->Save(profile)) {
+        return nullptr;
+    }
+    return profile;
+}
+
+void ensureQuattroLocalNetworkBypass() {
+    auto &settings = Configs::dataManager->settingsRepo;
+    const QStringList requiredRanges = {
+        QStringLiteral("10.0.0.0/8"),
+        QStringLiteral("100.64.0.0/10"),
+        QStringLiteral("169.254.0.0/16"),
+        QStringLiteral("172.16.0.0/12"),
+        QStringLiteral("192.168.0.0/16"),
+        QStringLiteral("224.0.0.0/4"),
+        QStringLiteral("::1/128"),
+        QStringLiteral("fc00::/7"),
+        QStringLiteral("fe80::/10"),
+        QStringLiteral("ff00::/8"),
+    };
+    bool changed = false;
+    if (settings->disable_private_range_bypass) {
+        settings->disable_private_range_bypass = false;
+        changed = true;
+    }
+    for (const auto &range : requiredRanges) {
+        if (!settings->vpn_private_ranges.contains(range)) {
+            settings->vpn_private_ranges << range;
+            changed = true;
+        }
+    }
+    if (changed) settings->Save();
+}
+}
+
 void MainWindow::setupQuattroDashboard() {
     if (quattroDashboard != nullptr) return;
+
+    ensureQuattroLocalNetworkBypass();
+    ensureQuattroRussiaProfile();
+    ensureQuattroAutoSelector();
 
     auto *legacyCentralWidget = takeCentralWidget();
     quattroStack = new QStackedWidget(this);
@@ -448,10 +531,30 @@ int MainWindow::ensureQuattroAutoSelector() {
     const auto group = Configs::dataManager->groupsRepo->CurrentGroup();
     if (!group || group->Profiles().isEmpty()) return -1;
 
+    const QString foreignNameFilter = QStringLiteral(
+        "(?i)^(?!.*(?:🇷🇺|Россия|Россий|Russia|Russian|Москва|МСК|Moscow|Санкт[ -]?Петербург)).*$");
+
+    const auto applyQuattroMembershipPolicy = [&](Configs::autoSelector *selector) {
+        const bool changed = selector->nameFilter != foreignNameFilter
+                             || selector->countryFilter.trimmed().compare(
+                                    QStringLiteral("!RU"), Qt::CaseInsensitive) != 0;
+        selector->nameFilter = foreignNameFilter;
+        selector->countryFilter = QStringLiteral("!RU");
+        if (changed) {
+            // Never retain a Russian member from a pool ranked before this policy existed.
+            selector->pool.clear();
+            selector->poolRankedAt = 0;
+            selector->lastBuilt.clear();
+            selector->lastBuiltAt = 0;
+            selector->pinnedID = -1;
+        }
+    };
+
     for (const auto &profile : Configs::dataManager->profilesRepo->GetProfileBatch(group->Profiles())) {
         if (profile && profile->type == "autoselector") {
             auto *selector = profile->AutoSelector();
             if (selector) {
+                applyQuattroMembershipPolicy(selector);
                 // Pick the fastest member on start, then keep it while it is healthy.
                 // A very wide hysteresis prevents routine latency jitter from moving
                 // sessions; the core still fails over immediately when health drops.
@@ -469,10 +572,11 @@ int MainWindow::ensureQuattroAutoSelector() {
 
     auto profile = Configs::ProfilesRepo::NewProfile(QStringLiteral("autoselector"));
     if (!profile || !profile->AutoSelector()) return -1;
-    profile->name = tr("Авто — быстрый + failover");
+    profile->name = tr("Авто — быстрый зарубежный + failover");
     auto *selector = profile->AutoSelector();
     selector->name = profile->name;
     selector->gid = group->id;
+    applyQuattroMembershipPolicy(selector);
     selector->resultValidityMins = 1440;
     selector->intervalSec = 300;
     selector->benchIntervalSec = 600;
@@ -491,9 +595,10 @@ void MainWindow::setQuattroRussiaBypass(bool enabled) {
     auto &settings = Configs::dataManager->settingsRepo;
     const auto current = Configs::dataManager->routesRepo->GetRouteProfile(settings->current_route_id);
     const bool hasChannels = current && current->name.startsWith(QStringLiteral("Quattro Channels"));
-    std::shared_ptr<Configs::RouteProfile> base;
+    std::shared_ptr<Configs::RouteProfile> base = enabled ? ensureQuattroRussiaProfile() : nullptr;
     for (const auto &route : Configs::dataManager->routesRepo->GetAllRouteProfiles()) {
         if (!route || route->name.startsWith(QStringLiteral("Quattro Channels"))) continue;
+        if (base && enabled) break;
         const bool match = enabled ? route->name.contains("Russia", Qt::CaseInsensitive)
                                    : route->name.compare("Default", Qt::CaseInsensitive) == 0;
         if (match) {
@@ -505,8 +610,7 @@ void MainWindow::setQuattroRussiaBypass(bool enabled) {
     if (!base) {
         if (enabled) {
             MessageBoxWarning(tr("Russia Bypass"),
-                              tr("Профиль Bypass Russia ещё не установлен. Открою менеджер маршрутов — выберите Download Profiles → Russia один раз."));
-            on_menu_routing_settings_triggered();
+                              tr("Не удалось создать встроенный профиль. Проверьте доступ к базе настроек Quattro."));
         } else {
             MessageBoxWarning(tr("Russia Bypass"), tr("Не найден стандартный профиль маршрутизации Default."));
         }

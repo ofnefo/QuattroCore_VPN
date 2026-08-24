@@ -19,7 +19,7 @@ namespace Configs
         // --- membership -------------------------------------------------
         int gid = -1;
         QString nameFilter;             // regex over the profile name, empty = all
-        QString countryFilter;          // comma-separated ISO codes, empty = all
+        QString countryFilter;          // comma-separated ISO codes; !RU excludes RU, empty = all
         bool excludeUnavailable = true; // skip profiles whose last test failed
 
         int poolCap = 1000;   // hard cap on how many profiles may be ranked

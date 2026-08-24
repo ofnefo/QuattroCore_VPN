@@ -246,6 +246,19 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
         MW_dialog_message(MwMessage::CoreStarted, {Int2String(profileId)});
     });
 
+    // Migrate Quattro's automatic selector before an autostarted profile is handed
+    // to the core; otherwise an old persisted pool could briefly select a RU node.
+    if (Configs::dataManager->settingsRepo->remember_enable
+        && Configs::dataManager->settingsRepo->remember_id >= 0) {
+        const auto remembered = Configs::dataManager->profilesRepo->GetProfile(
+            Configs::dataManager->settingsRepo->remember_id);
+        if (remembered && remembered->type == "autoselector") {
+            const int migratedAutoId = ensureQuattroAutoSelector();
+            if (migratedAutoId >= 0)
+                Configs::dataManager->settingsRepo->remember_id = migratedAutoId;
+        }
+    }
+
     // Start core
     auto socketFullName = core_server->fullServerName();
     runOnThread(
