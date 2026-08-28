@@ -398,19 +398,19 @@ jobs:
           cd deployment
           mkdir debug
           ####
-          bash ../script/pack_debian.sh ${{ github.event.inputs.tag }} amd64
+          bash ../script/pack_debian.sh "${APP_VERSION}" amd64
           mv Quattro.deb Quattro-${{ github.event.inputs.tag }}-debian-amd64.deb
           rm -rf Quattro
           ####
-          bash ../script/pack_debian.sh ${{ github.event.inputs.tag }} amd64 systemqt
+          bash ../script/pack_debian.sh "${APP_VERSION}" amd64 systemqt
           mv Quattro.deb Quattro-${{ github.event.inputs.tag }}-debian-amd64-system-qt.deb
           rm -rf Quattro
           ####
-          bash ../script/pack_debian.sh ${{ github.event.inputs.tag }} arm64
+          bash ../script/pack_debian.sh "${APP_VERSION}" arm64
           mv Quattro.deb Quattro-${{ github.event.inputs.tag }}-debian-arm64.deb
           rm -rf Quattro
           ####
-          bash ../script/pack_debian.sh ${{ github.event.inputs.tag }} arm64 systemqt
+          bash ../script/pack_debian.sh "${APP_VERSION}" arm64 systemqt
           mv Quattro.deb Quattro-${{ github.event.inputs.tag }}-debian-arm64-system-qt.deb
           rm -rf Quattro
           ####
