@@ -5,7 +5,7 @@
 
 > Быстрый VPN с надёжной инфраструктурой.
 
-[Подключить подписку через Telegram-бота](https://t.me/QuattroVPN_BOT)
+[Подключить подписку через Telegram-бота](https://telegram.me/QuattroVPN_BOT?start=r_agOsXaWr_CwtOQ_-)
 
 ## О проекте
 
