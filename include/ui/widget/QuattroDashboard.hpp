@@ -55,6 +55,7 @@ private:
     QLabel *m_subscriptionStatus = nullptr;
     QPushButton *m_subscriptionSave = nullptr;
     QPushButton *m_subscriptionRefresh = nullptr;
+    QPushButton *m_autoProfile = nullptr;
     QComboBox *m_profiles = nullptr;
     QPushButton *m_tunButton = nullptr;
     QPushButton *m_proxyButton = nullptr;

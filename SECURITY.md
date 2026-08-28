@@ -2,7 +2,7 @@
 
 Quattro controls system routing, DNS, proxy settings and a privileged core. Security reports should not be posted as public issues.
 
-After the repository is created, use GitHub's private vulnerability reporting for `ofnefo/quattro-desktop`. Until then, keep reports local and do not include credentials in screenshots or logs.
+Use GitHub's private vulnerability reporting for `ofnefo/QuattroCore_VPN`. Do not include credentials in screenshots or logs.
 
 ## Never commit
 
@@ -14,4 +14,4 @@ After the repository is created, use GitHub's private vulnerability reporting fo
 
 ## Update guarantees
 
-Official application updates must originate from `ofnefo/quattro-desktop` releases. Release artifacts should be built by the repository workflow, accompanied by checksums and signed when signing infrastructure becomes available.
+Official application updates must originate from `ofnefo/QuattroCore_VPN` releases. Release artifacts should be built by the repository workflow, accompanied by checksums and signed when signing infrastructure becomes available.

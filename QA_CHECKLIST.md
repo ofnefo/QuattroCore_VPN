@@ -17,9 +17,12 @@ subscription. Run it on a clean Windows user profile before publishing a release
 
 - TUN and System Proxy are mutually exclusive and persist independently.
 - Manual server selection switches immediately when already connected.
-- **Auto** initially selects the fastest healthy member, keeps it while healthy,
-  and immediately fails over after health failure; ordinary latency jitter must
-  not cause routine server hopping.
+- **Auto** selects healthy servers by subscription tier: diamond first,
+  fast/premium second, then ordinary country servers. Latency decides within a
+  tier, and a healthy active member is kept to avoid routine server hopping.
+- LTE/mobile-only endpoints and decorative subscription rows never enter the
+  desktop Auto pool. The manual picker keeps the full subscription order: LTE
+  endpoints are selectable and decoration rows are visible but disabled.
 - Connect is disabled while connecting/disconnecting, preventing duplicate starts.
 - The dashboard and tray display the real active member when Auto is running.
 
@@ -27,9 +30,12 @@ subscription. Run it on a clean Windows user profile before publishing a release
 
 - Russia Bypass sends Russian destinations directly and keeps protected services
   on the VPN path.
-- Toggling Russia Bypass does not erase Quattro application-channel rules.
+- Russia Bypass is active on a new/untouched configuration and sends Russian
+  destinations directly without erasing Quattro service rules.
 - Google/Gemini can use a separately selected subscription server.
-- Steam and Minimax direct toggles persist when the channel dialog is reopened.
+- Steam remains a dedicated direct-routing toggle.
+- The service table can add, edit and remove domain and application rules;
+  Yandex, Minimax and AnyDesk defaults persist when the dialog is reopened.
 - ChatGPT/OpenAI, Microsoft/Copilot, Telegram, and Adobe use the main VPN path.
 
 ## Tray and startup
@@ -45,8 +51,11 @@ subscription. Run it on a clean Windows user profile before publishing a release
 ## Packaging and isolation
 
 - Installer creates `Quattro.lnk` on Desktop and Start Menu using `Quattro.exe`.
+- Installer text renders English and Russian characters correctly on Windows.
 - Quattro uses its own AppData directory, database, URL scheme, scheduled task,
   core socket, updater, and process names.
 - Installing or uninstalling Quattro does not stop, overwrite, or delete Throne.
 - The packaged build contains `Quattro.exe`, `QuattroCore.exe`,
   `QuattroUpdater.exe`, required runtime files, and valid SHA-256 release sidecars.
+- A packaged AppData installation offers in-app update when `QuattroUpdater.exe`
+  is present, and the updater preserves the local configuration directory.

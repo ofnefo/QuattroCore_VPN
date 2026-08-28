@@ -2,16 +2,21 @@
 
 Quattro is a cross-platform desktop VPN and proxy client focused on simple selective routing: blocked and selected international services use a tunnel, while Russian and ordinary direct traffic can bypass it.
 
-> Development status: the independent Quattro fork is being prepared. No public repository or supported release has been published yet.
+> Development status: the independent Quattro fork is preparing its first supported release.
 
 ## Product goals
 
 - One-link subscription setup with scheduled refresh.
 - TUN and system-proxy modes.
-- Russia Bypass routing that can be enabled or disabled.
+- Russia Bypass routing enabled by default for new and untouched configurations.
 - Sticky lowest-latency selection: keep the current server while it is healthy and fail over immediately when it stops responding.
-- Separate channels for services that need a specific region, such as Google/Gemini.
-- Direct routing for services that do not need a tunnel, including Steam and optionally Minimax.
+- Desktop Auto priority: diamond servers, fast/premium servers, then ordinary
+  country servers; restricted LTE/mobile endpoints are excluded.
+- Manual server choice mirrors the complete subscription order, including LTE
+  endpoints and visible section headings.
+- A dedicated server channel for services that need a specific region, such as Google/Gemini.
+- Direct routing for Russian destinations and configurable services/sites/apps;
+  Steam remains a dedicated quick toggle.
 - A compact dashboard, tray controls, autostart and reconnect-last-profile.
 
 ## Independent application identity
@@ -30,12 +35,17 @@ Quattro does not reuse or modify an installed copy of the upstream application.
 
 ## Update channel
 
-The application is configured to read releases from the future repository:
+The application is configured to read releases from the Quattro repository:
 
-- repository: `https://github.com/ofnefo/quattro-desktop`
-- API: `https://api.github.com/repos/ofnefo/quattro-desktop/releases`
+- repository: `https://github.com/ofnefo/QuattroCore_VPN`
+- API: `https://api.github.com/repos/ofnefo/QuattroCore_VPN/releases`
 
-The repository does not exist yet. Until it is created and a release is published, the update check will safely return no usable update.
+For a one-off migration of an existing per-user Windows installation, the
+repository can also build `QuattroUpdate.exe`. It targets
+`%LOCALAPPDATA%\Quattro`, preserves user data, and uses the same atomic updater
+worker as the release flow.
+
+Until a release is published, the update check will safely return no usable update.
 
 Release assets must follow the contract documented in [ARCHITECTURE.md](ARCHITECTURE.md). Application updates and subscription/server-list updates are separate systems.
 

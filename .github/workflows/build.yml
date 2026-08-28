@@ -355,6 +355,7 @@ jobs:
           ####
           sudo apt install nsis
           cp ./script/windows_installer.nsi .
+          cp ./script/windows_manual_update.nsi .
           TAG="${{ github.event.inputs.tag }}"
           APP_VERSION="${TAG#v}"
           APP_VERSION="${APP_VERSION#V}"
@@ -368,6 +369,7 @@ jobs:
           APP_VERSION_BUILD="${parts[3]:-0}"
 
           makensis \
+            -INPUTCHARSET UTF8 \
             -DAPP_VERSION="${APP_VERSION}" \
             -DAPP_VERSION_MAJOR="${APP_VERSION_MAJOR}" \
             -DAPP_VERSION_MINOR="${APP_VERSION_MINOR}" \
@@ -375,6 +377,23 @@ jobs:
             -DAPP_VERSION_BUILD="${APP_VERSION_BUILD}" \
             windows_installer.nsi
           cp QuattroSetup.exe deployment/Quattro-${{ github.event.inputs.tag }}-windows-universal-installer.exe
+          #### One-click bridge for existing per-user Windows installations.
+          mkdir -p deployment/manual-update/Quattro
+          cp deployment/windows-amd64/Quattro.exe deployment/manual-update/Quattro/
+          cp deployment/windows-amd64/QuattroCore.exe deployment/manual-update/Quattro/
+          cp deployment/windows-amd64/QuattroUpdater.exe deployment/manual-update/Quattro/
+          cp deployment/windows-amd64/libcronet.dll deployment/manual-update/Quattro/
+          (cd deployment/manual-update && zip -9 -r Quattro.zip Quattro)
+          makensis \
+            -INPUTCHARSET UTF8 \
+            -DAPP_VERSION="${APP_VERSION}" \
+            -DAPP_VERSION_MAJOR="${APP_VERSION_MAJOR}" \
+            -DAPP_VERSION_MINOR="${APP_VERSION_MINOR}" \
+            -DAPP_VERSION_PATCH="${APP_VERSION_PATCH}" \
+            -DAPP_VERSION_BUILD="${APP_VERSION_BUILD}" \
+            windows_manual_update.nsi
+          cp QuattroUpdate.exe deployment/Quattro-${{ github.event.inputs.tag }}-windows-update.exe
+          rm -rf deployment/manual-update
           ####
           cd deployment
           mkdir debug
@@ -446,7 +465,7 @@ jobs:
           rm -rf darwinlegacy-amd64
           rm -rf Quattro
           ####
-          for archive in Quattro-*.zip; do
+          for archive in Quattro-*.zip Quattro-*.exe; do
             sha256sum "$archive" > "$archive.sha256"
           done
           ####

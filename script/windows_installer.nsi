@@ -1,4 +1,4 @@
-!ifndef APP_VERSION
+﻿!ifndef APP_VERSION
   !define APP_VERSION "0.0.0"
 !endif
 !ifndef APP_VERSION_MAJOR
@@ -13,6 +13,11 @@
 !ifndef APP_VERSION_BUILD
   !define APP_VERSION_BUILD 0
 !endif
+
+; The script is UTF-8 and contains Russian UI text. Without a Unicode NSIS
+; target those strings are compiled through the active ANSI code page and turn
+; into mojibake on another Windows locale.
+Unicode true
 
 Name "Quattro ${APP_VERSION}"
 OutFile "QuattroSetup.exe"

@@ -20,6 +20,13 @@ namespace Configs
         int gid = -1;
         QString nameFilter;             // regex over the profile name, empty = all
         QString countryFilter;          // comma-separated ISO codes; !RU excludes RU, empty = all
+        // Ordered regular expressions over the profile name. The first matching
+        // expression is the preferred tier; unmatched profiles form the final
+        // fallback tier. Health and latency still rank members inside a tier.
+        QStringList priorityNameFilters;
+        // Explicit profile-ID tiers are useful when a subscription communicates
+        // priority through section order rather than unique names/icons.
+        QList<QList<int>> priorityProfileIds;
         bool excludeUnavailable = true; // skip profiles whose last test failed
 
         int poolCap = 1000;   // hard cap on how many profiles may be ranked
@@ -92,6 +99,24 @@ namespace Configs
             if (object.contains("gid")) gid = object["gid"].toInt(-1);
             if (object.contains("name_filter")) nameFilter = object["name_filter"].toString();
             if (object.contains("country_filter")) countryFilter = object["country_filter"].toString();
+            if (object.contains("priority_name_filters")) {
+                priorityNameFilters.clear();
+                for (const auto &value : object["priority_name_filters"].toArray()) {
+                    const auto filter = value.toString().trimmed();
+                    if (!filter.isEmpty()) priorityNameFilters << filter;
+                }
+            }
+            if (object.contains("priority_profile_ids")) {
+                priorityProfileIds.clear();
+                for (const auto &tierValue : object["priority_profile_ids"].toArray()) {
+                    QList<int> tier;
+                    for (const auto &idValue : tierValue.toArray()) {
+                        const int id = idValue.toInt(-1);
+                        if (id >= 0 && !tier.contains(id)) tier << id;
+                    }
+                    priorityProfileIds << tier;
+                }
+            }
             if (object.contains("exclude_unavailable")) excludeUnavailable = object["exclude_unavailable"].toBool(true);
             if (object.contains("pool_cap")) poolCap = object["pool_cap"].toInt(3000);
             if (object.contains("build_limit")) buildLimit = object["build_limit"].toInt(300);
@@ -129,6 +154,16 @@ namespace Configs
             object["gid"] = gid;
             object["name_filter"] = nameFilter;
             object["country_filter"] = countryFilter;
+            QJsonArray priorityFilters;
+            for (const auto &filter : priorityNameFilters) priorityFilters.append(filter);
+            object["priority_name_filters"] = priorityFilters;
+            QJsonArray priorityTiers;
+            for (const auto &tier : priorityProfileIds) {
+                QJsonArray ids;
+                for (const int id : tier) ids.append(id);
+                priorityTiers.append(ids);
+            }
+            object["priority_profile_ids"] = priorityTiers;
             object["exclude_unavailable"] = excludeUnavailable;
             object["pool_cap"] = poolCap;
             object["build_limit"] = buildLimit;

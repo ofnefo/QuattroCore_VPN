@@ -23,6 +23,7 @@ namespace Configs
             bool hasName = false;
             QSet<QString> includedCountries;
             QSet<QString> excludedCountries;
+            QList<QRegularExpression> priorities;
         };
 
         MemberFilters buildFilters(const autoSelector *selector)
@@ -42,7 +43,31 @@ namespace Configs
                     filters.includedCountries.insert(normalized);
                 }
             }
+            for (const auto &pattern : selector->priorityNameFilters) {
+                QRegularExpression priority(pattern, QRegularExpression::CaseInsensitiveOption);
+                if (priority.isValid() && !pattern.trimmed().isEmpty()) filters.priorities << priority;
+            }
             return filters;
+        }
+
+        int priorityTier(const std::shared_ptr<Profile> &member, const autoSelector *selector,
+                         const MemberFilters &filters)
+        {
+            if (member == nullptr || member->outbound == nullptr) {
+                return !selector->priorityProfileIds.isEmpty()
+                           ? selector->priorityProfileIds.size() : filters.priorities.size();
+            }
+            if (!selector->priorityProfileIds.isEmpty()) {
+                for (int i = 0; i < selector->priorityProfileIds.size(); ++i) {
+                    if (selector->priorityProfileIds[i].contains(member->id)) return i;
+                }
+                return selector->priorityProfileIds.size();
+            }
+            const auto name = member->outbound->DisplayName();
+            for (int i = 0; i < filters.priorities.size(); ++i) {
+                if (filters.priorities[i].match(name).hasMatch()) return i;
+            }
+            return filters.priorities.size();
         }
 
         // A stored result counts only while it is inside the selector's validity
@@ -154,8 +179,12 @@ namespace Configs
         }
 
         // Shared comparator so the plan's ordering and a post-test re-rank agree.
-        bool byLatency(int left, int right, const autoSelector *selector, qint64 now)
+        bool byPolicy(int left, int right, const autoSelector *selector,
+                      const MemberFilters &filters, qint64 now)
         {
+            const int leftTier = priorityTier(dataManager->profilesRepo->GetProfile(left), selector, filters);
+            const int rightTier = priorityTier(dataManager->profilesRepo->GetProfile(right), selector, filters);
+            if (leftTier != rightTier) return leftTier < rightTier;
             const int leftLatency = effectiveLatencyOf(left, selector, now);
             const int rightLatency = effectiveLatencyOf(right, selector, now);
             const int leftRank = latencyRank(leftLatency);
@@ -233,8 +262,11 @@ namespace Configs
             for (int id : members) {
                 if (!placed.contains(id)) newcomers << id;
             }
+            const auto filters = buildFilters(selector);
             std::stable_sort(newcomers.begin(), newcomers.end(),
-                             [selector, now](int left, int right) { return byLatency(left, right, selector, now); });
+                             [selector, filters, now](int left, int right) {
+                                 return byPolicy(left, right, selector, filters, now);
+                             });
             ordered << newcomers;
             return ordered;
         }
@@ -348,8 +380,11 @@ namespace Configs
         // A fresh measurement supersedes the old ranking, so order purely by
         // latency here rather than preserving the previous pool.
         const auto now = QDateTime::currentSecsSinceEpoch();
+        const auto filters = buildFilters(selector);
         std::stable_sort(members.begin(), members.end(),
-                         [selector, now](int left, int right) { return byLatency(left, right, selector, now); });
+                         [selector, filters, now](int left, int right) {
+                             return byPolicy(left, right, selector, filters, now);
+                         });
         if (members.size() > selector->poolCap) members = members.mid(0, selector->poolCap);
 
         selector->pool = members;

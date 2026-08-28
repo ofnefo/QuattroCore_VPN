@@ -26,18 +26,26 @@ With the dependencies unpacked under `tools/`, run:
 script\build_local_windows.cmd
 ```
 
-The helper initializes the Visual Studio x64 environment, configures the packaged
-AppData mode, and builds `build\Quattro.exe`. The equivalent manual commands from
-an x64 Native Tools shell are:
+The helper initializes the Visual Studio x64 environment, switches the console
+to UTF-8 so Ninja can track localized MSVC include output, downloads the routing
+rule catalogue when missing, configures the packaged AppData mode, and builds
+`build-local-windows\Quattro.exe`. Using a dedicated local build directory keeps
+old absolute CMake cache paths from breaking a moved checkout. The equivalent
+manual commands from an x64 Native Tools shell are:
 
 ```powershell
-cmake -S . -B build -GNinja `
+chcp 65001
+New-Item -ItemType Directory -Force build-local-windows | Out-Null
+Invoke-WebRequest `
+  https://raw.githubusercontent.com/throneproj/routeprofiles/rule-set/srslist.h `
+  -OutFile build-local-windows/srslist.h
+cmake -S . -B build-local-windows -GNinja `
   -DCMAKE_BUILD_TYPE=RelWithDebInfo `
   -DCMAKE_PREFIX_PATH="$PWD/tools/Qt/lib/cmake" `
   -DOPENSSL_ROOT_DIR="$PWD/tools/openssl" `
-  -DINPUT_VERSION=0.1.0-dev `
+  -DINPUT_VERSION=0.1.1 `
   -DNKR_PACKAGE=1
-cmake --build build --parallel
+cmake --build build-local-windows --parallel
 ```
 
 Place `QuattroCore.exe`, `QuattroUpdater.exe` and, for supported modern Windows builds, `libcronet.dll` beside `Quattro.exe` before running the package.
@@ -52,13 +60,26 @@ For a local Windows x64 package after staging the four runtime files under
 `deployment\windows-amd64`, run from the repository root:
 
 ```powershell
-& "C:\Program Files (x86)\NSIS\makensis.exe" /NOCD /V3 `
+& "C:\Program Files (x86)\NSIS\makensis.exe" /NOCD /V3 /INPUTCHARSET UTF8 `
   /DQUATTRO_LOCAL_X64 `
-  /DAPP_VERSION=0.1.0-dev `
+  /DAPP_VERSION=0.1.1 `
   /DAPP_VERSION_MAJOR=0 /DAPP_VERSION_MINOR=1 `
-  /DAPP_VERSION_PATCH=0 /DAPP_VERSION_BUILD=0 `
+  /DAPP_VERSION_PATCH=1 /DAPP_VERSION_BUILD=0 `
   script\windows_installer.nsi
 ```
 
 Without `QUATTRO_LOCAL_X64`, the release workflow keeps building the universal
 installer and expects every architecture-specific deployment directory.
+
+## One-click local update
+
+After staging the current x64 runtime files, build a self-contained updater for
+an existing per-user installation with:
+
+```powershell
+script\build_manual_update.ps1
+```
+
+`QuattroUpdate.exe` stops the installed app and core, applies the same
+top-level `Quattro/` archive consumed by the repository-built updater, preserves
+all config data, and restarts the client. It targets `%LOCALAPPDATA%\Quattro`.

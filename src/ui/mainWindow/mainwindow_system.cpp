@@ -7,6 +7,7 @@
 #include <QDir>
 #include <QDirIterator>
 #include <QFile>
+#include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QMessageBox>
@@ -528,7 +529,7 @@ void MainWindow::CheckUpdate() {
         return;
     }
 
-    auto resp = NetworkRequestHelper::HttpGet("https://api.github.com/repos/ofnefo/quattro-desktop/releases");
+    auto resp = NetworkRequestHelper::HttpGet("https://api.github.com/repos/ofnefo/QuattroCore_VPN/releases");
     if (!resp.error.isEmpty()) {
         runOnUiThread([=,this] {
             MessageBoxWarning(QObject::tr("Update"), QObject::tr("Requesting update error: %1").arg(resp.error + "\n" + resp.data));
@@ -570,7 +571,14 @@ void MainWindow::CheckUpdate() {
     }
 
     runOnUiThread([=,this] {
-        auto allow_updater = !Configs::dataManager->settingsRepo->flag_use_appdata;
+#ifdef Q_OS_WIN
+        const auto updaterPath = QDir(QApplication::applicationDirPath()).filePath(QStringLiteral("QuattroUpdater.exe"));
+#else
+        const auto updaterPath = QDir(QApplication::applicationDirPath()).filePath(QStringLiteral("QuattroUpdater"));
+#endif
+        // Packaged Windows builds intentionally keep user data in AppData. That
+        // must not disable updates: only the presence of the updater matters.
+        const auto allow_updater = QFileInfo::exists(updaterPath);
         QMessageBox box(QMessageBox::Question, QObject::tr("Update") + note_pre_release,
                         QObject::tr("Update found: %1\nRelease note:\n%2").arg(assets_name, release_note));
         //

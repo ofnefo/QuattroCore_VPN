@@ -11,7 +11,7 @@ from urllib.request import urlopen, urlretrieve
 from pathlib import Path
 from typing import Union
 
-REPO = "ofnefo/quattro-desktop"
+REPO = "ofnefo/QuattroCore_VPN"
 
 APPDIR = Path("/opt/Quattro")
 DESKTOPDIR = Path("/usr/share/applications")

@@ -80,6 +80,7 @@ CMakeLists.txt.user*
 
 # Deploy
 /deployment
+/release
 /tools/go/
 /tools/go-cache/
 /tools/go-mod-cache/

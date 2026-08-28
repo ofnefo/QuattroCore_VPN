@@ -25,13 +25,22 @@ Subscription credentials are local state. They must never be used as compiled de
 - `direct` handles Russian/local destinations and explicitly direct services.
 - `proxy` handles selected blocked/international services.
 - service channels may use a dedicated outbound group for region-sensitive providers.
-- automatic selection is sticky: latency ranks candidates, but a healthy active server is not rotated merely because another endpoint becomes slightly faster.
+- direct service rules are data-driven domain/application entries; Steam keeps a
+  convenience toggle while providers such as Yandex, Minimax and AnyDesk use the
+  same editable rule model.
+- desktop automatic selection excludes LTE/mobile-only and subscription
+  decoration entries. Candidate tiers are diamond, fast/premium, then ordinary
+  country servers; latency ranks candidates inside each tier.
+- the manual picker mirrors the full ordered subscription; LTE endpoints remain
+  selectable and decoration entries remain visible as non-connectable headings.
+- automatic selection is sticky: a healthy active server is not rotated merely
+  because another endpoint becomes slightly faster.
 
 ## Application updates
 
 Quattro reads the GitHub Releases API at:
 
-`https://api.github.com/repos/ofnefo/quattro-desktop/releases`
+`https://api.github.com/repos/ofnefo/QuattroCore_VPN/releases`
 
 Supported release names use semantic versions such as `v0.1.0`, `v0.2.0-beta.1` or `v1.0.0-rc.2`. ZIP assets must use these names:
 
@@ -46,10 +55,15 @@ Supported release names use semantic versions such as `v0.1.0`, `v0.2.0-beta.1` 
 
 Each ZIP has a matching `.sha256` release asset. The GUI downloads the selected archive as `Quattro.zip`, verifies SHA-256, shuts down networking cleanly and launches `QuattroUpdater`. Subscription refresh is independent of this release channel.
 
+The locally built `QuattroUpdate.exe` is a self-contained migration wrapper for
+the current per-user Windows install. It carries the same top-level
+`Quattro/` ZIP and runs `QuattroUpdater` from a temporary directory, allowing
+the installed updater binary to be replaced safely without touching config.
+
 ## Branches
 
 - `main` — reviewed, releasable source
 - `develop` — integration branch
 - feature branches — isolated changes merged into `develop`
 
-The local clone keeps the original source remote as `upstream` and reserves `origin` for `https://github.com/ofnefo/quattro-desktop.git`.
+The local clone keeps the original source remote as `upstream` and uses `origin` for `https://github.com/ofnefo/QuattroCore_VPN.git`.

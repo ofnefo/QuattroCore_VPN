@@ -1,7 +1,9 @@
 #include "include/ui/widget/QuattroDashboard.hpp"
 
+#include <algorithm>
 #include <QButtonGroup>
 #include <QCheckBox>
+#include <QColor>
 #include <QComboBox>
 #include <QFrame>
 #include <QGridLayout>
@@ -14,6 +16,7 @@
 #include <QScrollArea>
 #include <QSignalBlocker>
 #include <QSizePolicy>
+#include <QStandardItemModel>
 #include <QStyle>
 #include <QVBoxLayout>
 
@@ -160,15 +163,50 @@ QuattroDashboard::QuattroDashboard(QWidget *parent) : QWidget(parent) {
     connect(m_tunButton, &QPushButton::clicked, this, [this] { emit modeChanged(Mode::Tun); });
     connect(m_proxyButton, &QPushButton::clicked, this, [this] { emit modeChanged(Mode::SystemProxy); });
 
-    auto *serverCaption = new QLabel(tr("Сервер"), m_connectionCard);
+    auto *serverCaption = new QLabel(tr("Как подключаться"), m_connectionCard);
     serverCaption->setObjectName(QStringLiteral("fieldLabel"));
+    auto *serverSelector = new QFrame(m_connectionCard);
+    serverSelector->setObjectName(QStringLiteral("serverSelector"));
+    auto *serverRow = new QHBoxLayout(serverSelector);
+    serverRow->setContentsMargins(4, 4, 4, 4);
+    serverRow->setSpacing(4);
+
+    m_autoProfile = secondaryButton(tr("⚡ Авто"), serverSelector);
+    m_autoProfile->setObjectName(QStringLiteral("autoServerButton"));
+    m_autoProfile->setProperty("kind", "serverChoice");
+    m_autoProfile->setCheckable(true);
+    m_autoProfile->setToolTip(tr("Quattro сам выберет сервер по приоритету и скорости"));
+
     m_profiles = new QComboBox(m_connectionCard);
+    m_profiles->setPlaceholderText(tr("Выбрать сервер из списка…"));
     m_profiles->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     connect(m_profiles, &QComboBox::currentIndexChanged, this, [this](int index) {
-        if (index >= 0) emit profileChanged(m_profiles->itemData(index).toInt());
+        if (index < 0) return;
+        const int profileId = m_profiles->itemData(index).toInt();
+        if (profileId < 0) return;
+        {
+            const QSignalBlocker blocker(m_autoProfile);
+            m_autoProfile->setChecked(false);
+        }
+        m_activeServer->setText(tr("Выбран • %1").arg(m_profiles->itemText(index)));
+        emit profileChanged(profileId);
     });
+    connect(m_autoProfile, &QPushButton::clicked, this, [this] {
+        {
+            const QSignalBlocker profileBlocker(m_profiles);
+            m_profiles->setCurrentIndex(-1);
+        }
+        {
+            const QSignalBlocker autoBlocker(m_autoProfile);
+            m_autoProfile->setChecked(true);
+        }
+        m_activeServer->setText(tr("Авто • самый быстрый доступный сервер"));
+        emit profileChanged(-1);
+    });
+    serverRow->addWidget(m_autoProfile);
+    serverRow->addWidget(m_profiles, 1);
     connectionLayout->addWidget(serverCaption);
-    connectionLayout->addWidget(m_profiles);
+    connectionLayout->addWidget(serverSelector);
 
     m_routingCard = card(page);
     auto *routingLayout = new QVBoxLayout(m_routingCard);
@@ -191,7 +229,7 @@ QuattroDashboard::QuattroDashboard(QWidget *parent) : QWidget(parent) {
     routingLayout->addWidget(localDirect);
     auto *routingButtons = new QHBoxLayout;
     routingButtons->setSpacing(8);
-    auto *channels = secondaryButton(tr("Каналы"), m_routingCard);
+    auto *channels = secondaryButton(tr("Сервисы"), m_routingCard);
     auto *routes = secondaryButton(tr("Исключения"), m_routingCard);
     routingButtons->addWidget(channels);
     routingButtons->addWidget(routes);
@@ -327,6 +365,11 @@ QuattroDashboard::QuattroDashboard(QWidget *parent) : QWidget(parent) {
             border: 1px solid #303946;
             border-radius: 11px;
         }
+        QFrame#serverSelector {
+            background: #131922;
+            border: 1px solid #303946;
+            border-radius: 11px;
+        }
         QPushButton {
             min-height: 42px;
             border-radius: 10px;
@@ -357,6 +400,20 @@ QuattroDashboard::QuattroDashboard(QWidget *parent) : QWidget(parent) {
             background: #1b414b;
             border: 1px solid #32bfd2;
             color: #70e2ee;
+        }
+        QPushButton[kind="serverChoice"] {
+            min-height: 40px;
+            background: transparent;
+            border: none;
+            border-radius: 8px;
+            color: #aeb8c5;
+            padding: 0 13px;
+        }
+        QPushButton[kind="serverChoice"]:hover { background: #1c2530; color: #ffffff; }
+        QPushButton[kind="serverChoice"]:checked {
+            background: #173c48;
+            border: 1px solid #35c7dc;
+            color: #72e6f3;
         }
         QPushButton#primaryButton {
             background: #2abed1;
@@ -475,25 +532,54 @@ void QuattroDashboard::setConnectionState(bool connected, const QString &status,
 }
 
 void QuattroDashboard::setProfiles(const QList<QPair<int, QString>> &profiles, int selectedId, bool includeAuto) {
-    const QSignalBlocker blocker(m_profiles);
+    const QSignalBlocker profileBlocker(m_profiles);
+    const QSignalBlocker autoBlocker(m_autoProfile);
     m_profiles->clear();
-    m_hasProfiles = !profiles.isEmpty();
-    if (!m_hasProfiles) {
-        m_profiles->addItem(tr("Сначала добавьте подписку"), -2);
-    } else {
-        if (includeAuto) m_profiles->addItem(tr("Авто — быстрый зарубежный, без скачков"), -1);
-        for (const auto &[id, name] : profiles) m_profiles->addItem(name, id);
+    m_hasProfiles = std::any_of(profiles.cbegin(), profiles.cend(), [](const auto &profile) {
+        return profile.first >= 0;
+    });
+    m_profiles->setPlaceholderText(m_hasProfiles ? tr("Выбрать сервер из списка…")
+                                                 : tr("Сначала добавьте подписку"));
+    for (const auto &[id, name] : profiles) {
+        m_profiles->addItem(name, id);
+        if (id >= 0) continue;
+        if (auto *model = qobject_cast<QStandardItemModel *>(m_profiles->model())) {
+            if (auto *item = model->item(m_profiles->count() - 1)) {
+                item->setFlags(item->flags() & ~Qt::ItemIsEnabled & ~Qt::ItemIsSelectable);
+                item->setData(QColor(QStringLiteral("#67dce9")), Qt::ForegroundRole);
+            }
+        }
     }
     const int index = m_profiles->findData(selectedId);
-    m_profiles->setCurrentIndex(index >= 0 ? index : 0);
+    const bool autoSelected = includeAuto && selectedId < 0;
+    m_autoProfile->setVisible(includeAuto);
+    m_autoProfile->setEnabled(m_hasProfiles);
+    m_autoProfile->setChecked(autoSelected);
+    m_profiles->setCurrentIndex(autoSelected ? -1 : index);
     m_profiles->setEnabled(m_hasProfiles);
+    if (autoSelected) {
+        m_activeServer->setText(tr("Авто • самый быстрый доступный сервер"));
+    } else if (index >= 0) {
+        m_activeServer->setText(tr("Выбран • %1").arg(m_profiles->itemText(index)));
+    }
     updateConnectionButton();
 }
 
 void QuattroDashboard::setSelectedProfile(int profileId) {
-    const QSignalBlocker blocker(m_profiles);
+    const QSignalBlocker profileBlocker(m_profiles);
+    const QSignalBlocker autoBlocker(m_autoProfile);
+    const bool autoSelected = profileId < 0;
+    m_autoProfile->setChecked(autoSelected);
+    if (autoSelected) {
+        m_profiles->setCurrentIndex(-1);
+        m_activeServer->setText(tr("Авто • самый быстрый доступный сервер"));
+        return;
+    }
     const int index = m_profiles->findData(profileId);
-    if (index >= 0) m_profiles->setCurrentIndex(index);
+    if (index >= 0) {
+        m_profiles->setCurrentIndex(index);
+        m_activeServer->setText(tr("Выбран • %1").arg(m_profiles->itemText(index)));
+    }
 }
 
 void QuattroDashboard::setMode(Mode mode) {

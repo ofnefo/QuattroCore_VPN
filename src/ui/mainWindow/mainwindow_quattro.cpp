@@ -10,6 +10,7 @@
 #include "include/stats/autoselector/AutoSelectorMonitor.hpp"
 #include "include/ui/widget/QuattroDashboard.hpp"
 
+#include <algorithm>
 #include <QIcon>
 #include <QCheckBox>
 #include <QComboBox>
@@ -17,14 +18,18 @@
 #include <QDialogButtonBox>
 #include <QFrame>
 #include <QFormLayout>
+#include <QHeaderView>
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QLineEdit>
 #include <QMenu>
 #include <QMessageBox>
 #include <QPixmap>
 #include <QPushButton>
+#include <QRegularExpression>
 #include <QSizePolicy>
 #include <QStackedWidget>
+#include <QTableWidget>
 #include <QToolButton>
 #include <QUrl>
 #include <QVBoxLayout>
@@ -32,6 +37,47 @@
 namespace {
 const QString kQuattroRussiaProfileName = QStringLiteral("Quattro • Russia Bypass");
 const QString kQuattroRussiaRuleName = QStringLiteral("Quattro Built-in • Russia direct");
+const QString kQuattroDirectRulePrefix = QStringLiteral("Quattro • Direct • ");
+
+bool isQuattroSubscriptionDecoration(const QString &name) {
+    return name.contains(QStringLiteral("⬇")) || name.contains(QStringLiteral("⚠"))
+           || name.trimmed().endsWith(QStringLiteral("---"));
+}
+
+bool isQuattroLteServer(const QString &name) {
+    static const QRegularExpression lte(QStringLiteral(R"((?i)(?:^|\s|[-|])LTE(?:\s|$|[-|]))"));
+    return lte.match(name).hasMatch();
+}
+
+QStringList splitRoutingValues(QString value) {
+    value.replace(';', ',');
+    value.replace('\n', ',');
+    QStringList result;
+    for (auto item : value.split(',', Qt::SkipEmptyParts)) {
+        item = item.trimmed();
+        if (!item.isEmpty() && !result.contains(item, Qt::CaseInsensitive)) result << item;
+    }
+    return result;
+}
+
+struct QuattroDirectService {
+    QString name;
+    QStringList domains;
+    QStringList processes;
+};
+
+QList<QuattroDirectService> defaultQuattroDirectServices() {
+    return {
+        {QStringLiteral("Яндекс"),
+         {QStringLiteral("yandex.ru"), QStringLiteral("yandex.com"), QStringLiteral("yandex.net"),
+          QStringLiteral("ya.ru"), QStringLiteral("yastatic.net"), QStringLiteral("yadi.sk"),
+          QStringLiteral("yandexcloud.ru"), QStringLiteral("yandexcloud.net")},
+         {QStringLiteral("YandexDisk.exe"), QStringLiteral("YandexDisk2.exe")}},
+        {QStringLiteral("Minimax"),
+         {QStringLiteral("minimax.io"), QStringLiteral("minimaxi.com")}, {}},
+        {QStringLiteral("AnyDesk"), {QStringLiteral("anydesk.com")}, {QStringLiteral("anydesk.exe")}},
+    };
+}
 
 std::shared_ptr<Configs::RouteProfile> ensureQuattroRussiaProfile() {
     auto &repo = Configs::dataManager->routesRepo;
@@ -111,7 +157,16 @@ void MainWindow::setupQuattroDashboard() {
     if (quattroDashboard != nullptr) return;
 
     ensureQuattroLocalNetworkBypass();
-    ensureQuattroRussiaProfile();
+    const auto russiaProfile = ensureQuattroRussiaProfile();
+    const auto currentRoute = Configs::dataManager->routesRepo->GetRouteProfile(
+        Configs::dataManager->settingsRepo->current_route_id);
+    // Product default: local and Russian traffic is direct. Preserve explicit
+    // custom routing, but migrate the untouched upstream Default profile.
+    if (russiaProfile && currentRoute
+        && currentRoute->name.compare(QStringLiteral("Default"), Qt::CaseInsensitive) == 0) {
+        Configs::dataManager->settingsRepo->current_route_id = russiaProfile->id;
+        Configs::dataManager->settingsRepo->Save();
+    }
     ensureQuattroAutoSelector();
 
     auto *legacyCentralWidget = takeCentralWidget();
@@ -454,12 +509,24 @@ void MainWindow::refreshQuattroDashboard(bool reloadProfiles) {
         }
         return;
     }
+    // Subscription updates may replace/reorder profile IDs. Rebuild the Auto
+    // tiers from the current section layout before presenting the fresh list.
+    ensureQuattroAutoSelector();
     QList<QPair<int, QString>> items;
+    int serverCount = 0;
     const auto group = Configs::dataManager->groupsRepo->CurrentGroup();
     if (group) {
         for (const auto &profile : Configs::dataManager->profilesRepo->GetProfileBatch(group->Profiles())) {
             if (!profile || profile->type == "autoselector") continue;
-            items << qMakePair(profile->id, profile->outbound->DisplayName());
+            const auto displayName = profile->outbound->DisplayName();
+            if (isQuattroSubscriptionDecoration(displayName)) {
+                // Preserve the subscription's sections and exact order in the
+                // manual picker, but mark decoration rows as non-connectable.
+                items << qMakePair(-profile->id - 2, displayName);
+            } else {
+                items << qMakePair(profile->id, displayName);
+                serverCount++;
+            }
         }
     }
     int selected = running ? (running->type == "autoselector" ? -1 : running->id)
@@ -468,12 +535,20 @@ void MainWindow::refreshQuattroDashboard(bool reloadProfiles) {
         const auto remembered = Configs::dataManager->profilesRepo->GetProfile(settings->remember_id);
         if (remembered && remembered->type != "autoselector") selected = remembered->id;
     }
+    // A removed profile is absent from the picker. Fall back to Auto instead of
+    // connecting to a stale server while the UI appears to have no selection.
+    if (selected >= 0) {
+        const auto selectedItem = std::find_if(items.cbegin(), items.cend(), [selected](const auto &item) {
+            return item.first == selected;
+        });
+        if (selectedItem == items.cend()) selected = -1;
+    }
     quattroSelectedProfileId = selected;
     quattroDashboard->setProfiles(items, selected);
     if (group && !group->url.isEmpty()) {
         quattroDashboard->setSubscriptionState(
             false, items.isEmpty() ? tr("Подписка сохранена, но серверы пока не загружены")
-                                   : tr("Подписка активна • %1 серверов").arg(items.size()));
+                                   : tr("Подписка активна • %1 серверов").arg(serverCount));
     } else {
         quattroDashboard->setSubscriptionState(false, tr("Вставьте ссылку Quattro, чтобы начать"));
     }
@@ -532,14 +607,36 @@ int MainWindow::ensureQuattroAutoSelector() {
     if (!group || group->Profiles().isEmpty()) return -1;
 
     const QString foreignNameFilter = QStringLiteral(
-        "(?i)^(?!.*(?:🇷🇺|Россия|Россий|Russia|Russian|Москва|МСК|Moscow|Санкт[ -]?Петербург)).*$");
+        R"((?i)^(?!.*(?:🇷🇺|Россия|Россий|Russia|Russian|Москва|МСК|Moscow|Санкт[ -]?Петербург|(?:^|\s|[-|])LTE(?:\s|$|[-|])|⬇|⚠|---)).+$)");
+    QList<int> diamondTier;
+    QList<int> fastTier;
+    bool insideFastSection = false;
+    for (const int profileId : group->Profiles()) {
+        const auto profile = Configs::dataManager->profilesRepo->GetProfile(profileId);
+        if (!profile || profile->type == QStringLiteral("autoselector") || !profile->outbound) continue;
+        const auto name = profile->outbound->DisplayName();
+        if (isQuattroSubscriptionDecoration(name)) {
+            const bool fastHeader = name.contains(QStringLiteral("Быстр"), Qt::CaseInsensitive)
+                                    && name.contains(QStringLiteral("10"));
+            insideFastSection = fastHeader;
+            continue;
+        }
+        if (isQuattroLteServer(name)) continue;
+        if (name.contains(QStringLiteral("💎"))) diamondTier << profileId;
+        else if (insideFastSection) fastTier << profileId;
+    }
+    const QList<QList<int>> quattroPriorityTiers = {diamondTier, fastTier};
 
     const auto applyQuattroMembershipPolicy = [&](Configs::autoSelector *selector) {
         const bool changed = selector->nameFilter != foreignNameFilter
                              || selector->countryFilter.trimmed().compare(
-                                    QStringLiteral("!RU"), Qt::CaseInsensitive) != 0;
+                                    QStringLiteral("!RU"), Qt::CaseInsensitive) != 0
+                             || selector->priorityProfileIds != quattroPriorityTiers
+                             || !selector->priorityNameFilters.isEmpty();
         selector->nameFilter = foreignNameFilter;
         selector->countryFilter = QStringLiteral("!RU");
+        selector->priorityNameFilters.clear();
+        selector->priorityProfileIds = quattroPriorityTiers;
         if (changed) {
             // Never retain a Russian member from a pool ranked before this policy existed.
             selector->pool.clear();
@@ -662,18 +759,20 @@ void MainWindow::showQuattroChannels() {
     }
 
     QDialog dialog(this);
-    dialog.setWindowTitle(tr("Каналы Quattro"));
-    dialog.setMinimumWidth(520);
-    auto *layout = new QFormLayout(&dialog);
+    dialog.setWindowTitle(tr("Маршрутизация сервисов"));
+    dialog.resize(820, 620);
+    dialog.setMinimumWidth(680);
+    auto *layout = new QVBoxLayout(&dialog);
     layout->setContentsMargins(24, 22, 24, 22);
     layout->setSpacing(13);
 
-    auto *hint = new QLabel(tr("Основной канал уже обслуживает ChatGPT, Copilot, Telegram и Adobe. "
-                               "Здесь можно закрепить Google/Gemini за подходящим гео-сервером и "
-                               "оставить Steam и Minimax на прямом соединении."), &dialog);
+    auto *hint = new QLabel(tr("Российские сайты идут напрямую через Russia Bypass. Здесь можно "
+                               "добавлять отдельные сервисы, сайты и приложения в прямые исключения. "
+                               "Google/Gemini при необходимости закрепляется за отдельным VPN-сервером."), &dialog);
     hint->setWordWrap(true);
-    layout->addRow(hint);
+    layout->addWidget(hint);
 
+    auto *googleRow = new QFormLayout;
     auto *googleServer = new QComboBox(&dialog);
     googleServer->addItem(tr("Как основной VPN"), Configs::proxyID);
     const auto group = Configs::dataManager->groupsRepo->CurrentGroup();
@@ -685,8 +784,9 @@ void MainWindow::showQuattroChannels() {
     }
     bool hadChannelSettings = false;
     bool savedSteamDirect = false;
-    bool savedMinimaxDirect = false;
     int savedGoogleServer = Configs::proxyID;
+    QList<QuattroDirectService> savedServices;
+    bool hasStructuredDirectSettings = false;
     if (current && current->name.startsWith(QStringLiteral("Quattro Channels"))) {
         for (const auto &rule : current->Rules) {
             if (!rule || !rule->name.startsWith(QStringLiteral("Quattro •"))) continue;
@@ -696,32 +796,85 @@ void MainWindow::showQuattroChannels() {
             if (rule->domain_suffix.contains(QStringLiteral("steampowered.com")) ||
                 rule->process_name.contains(QStringLiteral("steam.exe")))
                 savedSteamDirect = true;
-            if (rule->domain_suffix.contains(QStringLiteral("minimax.io")))
-                savedMinimaxDirect = true;
+            if (rule->name.startsWith(kQuattroDirectRulePrefix)) {
+                hasStructuredDirectSettings = true;
+                const auto serviceName = rule->name.mid(kQuattroDirectRulePrefix.size());
+                auto existing = std::find_if(savedServices.begin(), savedServices.end(),
+                                             [&serviceName](const QuattroDirectService &service) {
+                                                 return service.name.compare(serviceName, Qt::CaseInsensitive) == 0;
+                                             });
+                if (existing == savedServices.end()) {
+                    savedServices << QuattroDirectService{serviceName, rule->domain_suffix, rule->process_name};
+                } else {
+                    existing->domains << rule->domain_suffix;
+                    existing->processes << rule->process_name;
+                    existing->domains.removeDuplicates();
+                    existing->processes.removeDuplicates();
+                }
+            }
         }
     }
+    if (!hasStructuredDirectSettings) savedServices = defaultQuattroDirectServices();
     const int googleIndex = googleServer->findData(savedGoogleServer);
     if (googleIndex >= 0) googleServer->setCurrentIndex(googleIndex);
-    layout->addRow(tr("Google / Gemini:"), googleServer);
+    googleRow->addRow(tr("Google / Gemini:"), googleServer);
+    layout->addLayout(googleRow);
 
     auto *steamDirect = new QCheckBox(tr("Steam — напрямую"), &dialog);
-    auto *minimaxDirect = new QCheckBox(tr("Minimax — напрямую"), &dialog);
     steamDirect->setChecked(hadChannelSettings ? savedSteamDirect : true);
-    minimaxDirect->setChecked(hadChannelSettings ? savedMinimaxDirect : true);
-    layout->addRow(steamDirect);
-    layout->addRow(minimaxDirect);
+    layout->addWidget(steamDirect);
+
+    auto *directTitle = new QLabel(tr("Прямые сервисы, сайты и приложения"), &dialog);
+    directTitle->setStyleSheet(QStringLiteral("font-weight:600"));
+    layout->addWidget(directTitle);
+
+    auto *services = new QTableWidget(&dialog);
+    services->setColumnCount(3);
+    services->setHorizontalHeaderLabels({tr("Сервис"), tr("Домены через запятую"),
+                                          tr("Приложения через запятую")});
+    services->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+    services->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
+    services->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Stretch);
+    services->verticalHeader()->setVisible(false);
+    services->setSelectionBehavior(QAbstractItemView::SelectRows);
+    services->setAlternatingRowColors(true);
+    const auto appendService = [services](const QuattroDirectService &service) {
+        const int row = services->rowCount();
+        services->insertRow(row);
+        services->setItem(row, 0, new QTableWidgetItem(service.name));
+        services->setItem(row, 1, new QTableWidgetItem(service.domains.join(QStringLiteral(", "))));
+        services->setItem(row, 2, new QTableWidgetItem(service.processes.join(QStringLiteral(", "))));
+    };
+    for (const auto &service : savedServices) appendService(service);
+    layout->addWidget(services, 1);
+
+    auto *serviceButtons = new QHBoxLayout;
+    auto *addService = new QPushButton(tr("Добавить сервис"), &dialog);
+    auto *removeService = new QPushButton(tr("Удалить выбранный"), &dialog);
+    serviceButtons->addWidget(addService);
+    serviceButtons->addWidget(removeService);
+    serviceButtons->addStretch();
+    connect(addService, &QPushButton::clicked, &dialog, [services, appendService] {
+        appendService({QObject::tr("Новый сервис"), {}, {}});
+        services->setCurrentCell(services->rowCount() - 1, 0);
+        services->editItem(services->currentItem());
+    });
+    connect(removeService, &QPushButton::clicked, &dialog, [services] {
+        if (services->currentRow() >= 0) services->removeRow(services->currentRow());
+    });
+    layout->addLayout(serviceButtons);
 
     auto *protectedServices = new QLabel(tr("Через основной VPN: ChatGPT/OpenAI, Microsoft/Copilot, Telegram, Adobe"), &dialog);
     protectedServices->setStyleSheet(QStringLiteral("color:#5f6670"));
     protectedServices->setWordWrap(true);
-    layout->addRow(protectedServices);
+    layout->addWidget(protectedServices);
 
     auto *buttons = new QDialogButtonBox(QDialogButtonBox::Save | QDialogButtonBox::Cancel, &dialog);
     buttons->button(QDialogButtonBox::Save)->setText(tr("Применить"));
     buttons->button(QDialogButtonBox::Cancel)->setText(tr("Отмена"));
     connect(buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
     connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
-    layout->addRow(buttons);
+    layout->addWidget(buttons);
     if (dialog.exec() != QDialog::Accepted) return;
 
     const bool updateExisting = current && current->name.startsWith(QStringLiteral("Quattro Channels"));
@@ -737,19 +890,14 @@ void MainWindow::showQuattroChannels() {
     channels->autoUpdate = false;
 
     QList<std::shared_ptr<Configs::RouteRule>> custom;
-    if (steamDirect->isChecked() || minimaxDirect->isChecked()) {
+    if (steamDirect->isChecked()) {
         auto directDomains = std::make_shared<Configs::RouteRule>();
-        directDomains->name = QStringLiteral("Quattro • Direct services");
+        directDomains->name = QStringLiteral("Quattro • Steam domains");
         directDomains->type = Configs::simpleAddressBypass;
         directDomains->action = QStringLiteral("route");
         directDomains->outboundID = Configs::directID;
-        if (steamDirect->isChecked()) {
-            directDomains->domain_suffix << "steampowered.com" << "steamcommunity.com"
-                                         << "steamstatic.com" << "steamcontent.com";
-        }
-        if (minimaxDirect->isChecked()) {
-            directDomains->domain_suffix << "minimax.io" << "minimaxi.com";
-        }
+        directDomains->domain_suffix << "steampowered.com" << "steamcommunity.com"
+                                     << "steamstatic.com" << "steamcontent.com";
         custom << directDomains;
     }
 
@@ -761,6 +909,34 @@ void MainWindow::showQuattroChannels() {
         directProcesses->outboundID = Configs::directID;
         directProcesses->process_name << "steam.exe" << "steamwebhelper.exe";
         custom << directProcesses;
+    }
+
+    for (int row = 0; row < services->rowCount(); ++row) {
+        const auto nameItem = services->item(row, 0);
+        const auto domainsItem = services->item(row, 1);
+        const auto processesItem = services->item(row, 2);
+        const auto name = nameItem ? nameItem->text().trimmed() : QString();
+        const auto domains = splitRoutingValues(domainsItem ? domainsItem->text() : QString());
+        const auto processes = splitRoutingValues(processesItem ? processesItem->text() : QString());
+        if (name.isEmpty() || (domains.isEmpty() && processes.isEmpty())) continue;
+        if (!domains.isEmpty()) {
+            auto directDomains = std::make_shared<Configs::RouteRule>();
+            directDomains->name = kQuattroDirectRulePrefix + name;
+            directDomains->type = Configs::simpleAddressBypass;
+            directDomains->action = QStringLiteral("route");
+            directDomains->outboundID = Configs::directID;
+            directDomains->domain_suffix = domains;
+            custom << directDomains;
+        }
+        if (!processes.isEmpty()) {
+            auto directProcesses = std::make_shared<Configs::RouteRule>();
+            directProcesses->name = kQuattroDirectRulePrefix + name;
+            directProcesses->type = Configs::simpleProcessNameBypass;
+            directProcesses->action = QStringLiteral("route");
+            directProcesses->outboundID = Configs::directID;
+            directProcesses->process_name = processes;
+            custom << directProcesses;
+        }
     }
 
     auto google = std::make_shared<Configs::RouteRule>();
