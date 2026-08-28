@@ -37,7 +37,7 @@ namespace Configs
             for (const auto &code : selector->countryFilter.split(',', Qt::SkipEmptyParts)) {
                 auto normalized = code.trimmed().toUpper();
                 if (normalized.startsWith('!')) {
-                    normalized.removeFirst();
+                    normalized.remove(0, 1);
                     if (!normalized.isEmpty()) filters.excludedCountries.insert(normalized);
                 } else if (!normalized.isEmpty()) {
                     filters.includedCountries.insert(normalized);
