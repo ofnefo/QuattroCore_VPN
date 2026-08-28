@@ -18,7 +18,7 @@ Quattro — кроссплатформенный VPN-клиент, заточе�
 Репозиторий содержит графический клиент, сетевое ядро, обновлятор, установщики
 и автоматизацию сборки релизов.
 
-<img width="1137" height="927" alt="image" src="https://github.com/user-attachments/assets/8afe3099-e63f-4919-b21f-055cf2b5dbec" />
+<img width="1123" height="932" alt="image" src="https://github.com/user-attachments/assets/061000c4-2922-43a0-b526-4a0e52a24f0b" />
 
 ## Основные возможности
 
