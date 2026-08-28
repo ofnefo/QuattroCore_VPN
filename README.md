@@ -1,72 +1,124 @@
-# Quattro Desktop
+# Quattro VPN
 
-Quattro is a cross-platform desktop VPN and proxy client focused on simple selective routing: blocked and selected international services use a tunnel, while Russian and ordinary direct traffic can bypass it.
+Разработка десктопного VPN-клиента для подписки
+[Quattro VPN](https://t.me/QuattroVPN_BOT).
 
-> Development status: the independent Quattro fork is preparing its first supported release.
+> Быстрый VPN с надёжной инфраструктурой.
 
-## Product goals
+[Подключить подписку через Telegram-бота](https://t.me/QuattroVPN_BOT)
 
-- One-link subscription setup with scheduled refresh.
-- TUN and system-proxy modes.
-- Russia Bypass routing enabled by default for new and untouched configurations.
-- Sticky lowest-latency selection: keep the current server while it is healthy and fail over immediately when it stops responding.
-- Desktop Auto priority: diamond servers, fast/premium servers, then ordinary
-  country servers; restricted LTE/mobile endpoints are excluded.
-- Manual server choice mirrors the complete subscription order, including LTE
-  endpoints and visible section headings.
-- A dedicated server channel for services that need a specific region, such as Google/Gemini.
-- Direct routing for Russian destinations and configurable services/sites/apps;
-  Steam remains a dedicated quick toggle.
-- A compact dashboard, tray controls, autostart and reconnect-last-profile.
+## О проекте
 
-## Independent application identity
+Quattro — кроссплатформенный VPN-клиент, заточенный под подписку Quattro VPN.
+Клиент получает полный список серверов из подписки, автоматически выбирает
+оптимальное подключение и поддерживает раздельную маршрутизацию: нужные сайты
+и приложения работают через VPN, а российские и выбранные пользователем
+сервисы могут открываться напрямую.
 
-The fork uses its own external and internal contracts:
+Репозиторий содержит графический клиент, сетевое ядро, обновлятор, установщики
+и автоматизацию сборки релизов.
 
-- GUI: `Quattro` / `Quattro.exe`
-- privileged core: `QuattroCore` / `QuattroCore.exe`
-- updater: `QuattroUpdater` / `QuattroUpdater.exe`
-- URL scheme: `quattro://`
-- IPC environment: `QUATTRO_CORE_SOCKET` and `QUATTRO_CORE_DEBUG`
-- data directory: the platform-specific Quattro application-data directory
-- databases: `quattro.db` and `quattro_stats.db`
+## Основные возможности
 
-Quattro does not reuse or modify an installed copy of the upstream application.
+- Подключение подписки одной ссылкой и автоматическое обновление списка
+  серверов.
+- Отдельная кнопка **Авто** и ручной выбор сервера из полного списка подписки.
+- Приоритет режима Авто: серверы с алмазами, быстрые серверы до 10 Гбит/с,
+  затем обычные серверы стран.
+- LTE-серверы доступны для ручного выбора, но не используются режимом Авто:
+  они предназначены преимущественно для мобильных устройств и имеют
+  дополнительные ограничения.
+- Russia Bypass: российские сайты, IP-адреса и локальные ресурсы работают
+  напрямую.
+- Настраиваемая таблица прямой маршрутизации для сайтов, сервисов и приложений.
+  По умолчанию предусмотрены Яндекс/Яндекс Диск, Minimax и AnyDesk.
+- Отдельный быстрый переключатель прямой маршрутизации Steam.
+- TUN-режим и системный прокси.
+- Автозапуск, управление из системного трея и восстановление последнего
+  подключения.
+- Автоматическая проверка релизов, проверка SHA-256 и безопасное обновление с
+  сохранением подписок, профилей и настроек.
 
-## Update channel
+## Выбор сервера
 
-The application is configured to read releases from the Quattro repository:
+### Авто
 
-- repository: `https://github.com/ofnefo/QuattroCore_VPN`
-- API: `https://api.github.com/repos/ofnefo/QuattroCore_VPN/releases`
+Автоматический режим выбирает самый быстрый доступный сервер внутри первой
+непустой группы приоритета:
 
-For a one-off migration of an existing per-user Windows installation, the
-repository can also build `QuattroUpdate.exe`. It targets
-`%LOCALAPPDATA%\Quattro`, preserves user data, and uses the same atomic updater
-worker as the release flow.
+1. Серверы с обозначением `💎`.
+2. Быстрые и премиальные серверы, включая серверы до 10 Гбит/с.
+3. Обычные серверы стран.
 
-Until a release is published, the update check will safely return no usable update.
+Текущий сервер сохраняется, пока он работает стабильно. При недоступности
+клиент сразу переключается на подходящий резервный сервер. LTE-серверы и
+служебные заголовки подписки в автоматическом выборе не участвуют.
 
-Release assets must follow the contract documented in [ARCHITECTURE.md](ARCHITECTURE.md). Application updates and subscription/server-list updates are separate systems.
+### Ручной выбор
 
-## Source layout
+Ручной список повторяет порядок, названия и разделы исходной подписки. В нём
+доступны все реальные серверы, включая LTE. Служебные строки и заголовки
+разделов отображаются для сохранения структуры, но выбрать их для подключения
+нельзя.
 
-- `src/`, `include/` — Qt desktop application
-- `core/server/` — Go core and the Quattro updater command
-- `res/` — Quattro resources, translations and platform icons
-- `script/` — packaging and deployment scripts
-- `.github/workflows/` — build and release automation
+## Маршрутизация
 
-## Building
+Quattro разделяет трафик по назначению:
 
-Windows build notes are in [BUILD_QUATTRO_WINDOWS.md](BUILD_QUATTRO_WINDOWS.md). The complete release matrix is defined in [.github/workflows/build.yml](.github/workflows/build.yml).
+- `direct` — российские и локальные ресурсы, а также добавленные пользователем
+  сайты, домены и приложения;
+- `proxy` — заблокированные и выбранные международные сервисы;
+- отдельные каналы серверов — сервисы, которым требуется конкретный регион.
 
-Every Windows release must pass the product and packaging checks in [QA_CHECKLIST.md](QA_CHECKLIST.md).
+Russia Bypass включается для новых и неизменённых стандартных конфигураций и
+использует правила `geosite-ru` и `geoip-ru`.
 
-## Security
+## Установка и обновление
 
-Never commit subscription URLs, access tokens, private keys, generated configurations or user databases. See [SECURITY.md](SECURITY.md).
+Готовые сборки публикуются в разделе
+[GitHub Releases](https://github.com/ofnefo/QuattroCore_VPN/releases).
 
-## License and origin
+- Обычный установщик предназначен для новой установки Quattro.
+- `QuattroUpdate.exe` обновляет существующую установку в
+  `%LOCALAPPDATA%\Quattro`, не удаляя пользовательские данные.
+- Встроенный обновлятор загружает подходящий ZIP релиза, проверяет файл
+  `.sha256`, завершает сетевые процессы, атомарно заменяет файлы программы и
+  перезапускает Quattro.
 
-Quattro is a GPL-3.0 fork derived from the open-source [Throne](https://github.com/throneproj/Throne) project. The GPL license is retained in [LICENSE](LICENSE), and origin/attribution details are recorded in [QUATTRO_NOTICE.md](QUATTRO_NOTICE.md). Upstream names that remain in dependency module URLs or legal notices are attribution and dependency identifiers, not Quattro application branding.
+Обновление приложения и обновление серверов подписки — независимые процессы.
+
+## Компоненты
+
+- `Quattro` / `Quattro.exe` — графический клиент.
+- `QuattroCore` / `QuattroCore.exe` — сетевое ядро.
+- `QuattroUpdater` / `QuattroUpdater.exe` — безопасная установка обновлений.
+- `quattro://` — собственная URL-схема приложения.
+- `quattro.db` и `quattro_stats.db` — отдельные базы данных Quattro.
+
+Quattro не использует и не изменяет данные установленного upstream-клиента.
+
+## Структура репозитория
+
+- `src/`, `include/` — приложение на Qt/C++.
+- `core/server/` — сетевое ядро на Go и QuattroUpdater.
+- `res/` — ресурсы, переводы, иконки и темы.
+- `script/` — сборка, упаковка и установщики.
+- `.github/workflows/` — сборка и публикация релизов.
+
+Архитектура и контракт обновлений описаны в
+[ARCHITECTURE.md](ARCHITECTURE.md). Инструкция по локальной сборке Windows
+находится в [BUILD_QUATTRO_WINDOWS.md](BUILD_QUATTRO_WINDOWS.md). Перед релизом
+используется [QA_CHECKLIST.md](QA_CHECKLIST.md).
+
+## Безопасность
+
+В репозиторий нельзя добавлять ссылки подписок, токены, приватные ключи,
+пользовательские конфигурации, базы данных и материалы для подписи релизов.
+Подробнее — в [SECURITY.md](SECURITY.md).
+
+## Лицензия и происхождение
+
+Quattro распространяется по GPL-3.0 и основан на открытом проекте
+[Throne](https://github.com/throneproj/Throne). Лицензия сохранена в
+[LICENSE](LICENSE), сведения о происхождении и атрибуции находятся в
+[QUATTRO_NOTICE.md](QUATTRO_NOTICE.md).
