@@ -71,10 +71,7 @@ QuattroDashboard::QuattroDashboard(QWidget *parent) : QWidget(parent) {
     brand->setSpacing(0);
     auto *title = new QLabel(QStringLiteral("Quattro VPN"), header);
     title->setObjectName(QStringLiteral("brandTitle"));
-    auto *subtitle = new QLabel(tr("Умная маршрутизация для Windows"), header);
-    subtitle->setObjectName(QStringLiteral("muted"));
     brand->addWidget(title);
-    brand->addWidget(subtitle);
     headerLayout->addLayout(brand);
     headerLayout->addStretch();
 

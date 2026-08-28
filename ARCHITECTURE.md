@@ -26,12 +26,14 @@ Subscription credentials are local state. They must never be used as compiled de
 - `proxy` handles selected blocked/international services.
 - service channels may use a dedicated outbound group for region-sensitive providers.
 - direct service rules are data-driven domain/application entries; Steam keeps a
-  convenience toggle while providers such as Yandex, Minimax and AnyDesk use the
-  same editable rule model.
+  convenience toggle while Russian providers such as Yandex, VK/Mail.ru,
+  Ozon/Wildberries and 2GIS use the same editable rule model.
 - desktop automatic selection excludes LTE/mobile-only and subscription
   decoration entries. Candidate tiers are diamond, fast/premium, then ordinary
   country servers; latency ranks candidates inside each tier.
-- the manual picker mirrors the full ordered subscription; LTE endpoints remain
+- the manual picker contains the full subscription, promotes its
+  `Авто | Самый быстрый` block to the top like the regular provider view, and
+  preserves the relative order of all remaining rows. LTE endpoints remain
   selectable and decoration entries remain visible as non-connectable headings.
 - automatic selection is sticky: a healthy active server is not rotated merely
   because another endpoint becomes slightly faster.

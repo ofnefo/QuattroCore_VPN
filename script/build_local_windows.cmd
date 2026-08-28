@@ -3,7 +3,7 @@ setlocal
 
 set "QUATTRO_ROOT=%~dp0.."
 set "QUATTRO_BUILD=%QUATTRO_ROOT%\build-local-windows"
-if not defined QUATTRO_VERSION set "QUATTRO_VERSION=0.1.1"
+if not defined QUATTRO_VERSION set "QUATTRO_VERSION=0.1.2"
 set "VS_VCVARS=%ProgramFiles(x86)%\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
 rem CMake/Ninja records MSVC /showIncludes output verbatim. Use UTF-8 so a
 rem localized compiler prefix is preserved instead of becoming question marks.

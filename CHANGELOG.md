@@ -4,6 +4,19 @@ All notable Quattro changes will be documented here.
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-08-28
+
+### Changed
+
+- Removed Minimax and AnyDesk from direct-routing defaults and automatically
+  retires their old Quattro-managed rules after an update.
+- Seeded the editable direct list with Russian services: Yandex/Yandex Disk,
+  VK/Mail.ru, Ozon/Wildberries and 2GIS; Steam remains a separate toggle.
+- Removed the Windows-specific smart-routing subtitle from the dashboard.
+- Made the manual picker match the regular subscription view: diamond
+  `Авто | Самый быстрый` first, the remaining Auto endpoints next, and every
+  other subscription row in its original relative order.
+
 ## [0.1.1] - 2026-08-28
 
 ### Changed

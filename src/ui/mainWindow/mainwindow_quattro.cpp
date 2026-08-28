@@ -73,10 +73,52 @@ QList<QuattroDirectService> defaultQuattroDirectServices() {
           QStringLiteral("ya.ru"), QStringLiteral("yastatic.net"), QStringLiteral("yadi.sk"),
           QStringLiteral("yandexcloud.ru"), QStringLiteral("yandexcloud.net")},
          {QStringLiteral("YandexDisk.exe"), QStringLiteral("YandexDisk2.exe")}},
-        {QStringLiteral("Minimax"),
-         {QStringLiteral("minimax.io"), QStringLiteral("minimaxi.com")}, {}},
-        {QStringLiteral("AnyDesk"), {QStringLiteral("anydesk.com")}, {QStringLiteral("anydesk.exe")}},
+        {QStringLiteral("VK / Mail.ru"),
+         {QStringLiteral("vk.com"), QStringLiteral("vk.ru"), QStringLiteral("userapi.com"),
+          QStringLiteral("mail.ru"), QStringLiteral("mycdn.me")}, {}},
+        {QStringLiteral("Ozon / Wildberries"),
+         {QStringLiteral("ozon.ru"), QStringLiteral("ozonusercontent.com"),
+          QStringLiteral("wildberries.ru"), QStringLiteral("wb.ru"),
+          QStringLiteral("wbbasket.ru")}, {}},
+        {QStringLiteral("2ГИС"),
+         {QStringLiteral("2gis.ru"), QStringLiteral("2gis.com"), QStringLiteral("dgis.com")}, {}},
     };
+}
+
+bool isRetiredQuattroDirectService(const QString &name) {
+    return name.compare(QStringLiteral("Minimax"), Qt::CaseInsensitive) == 0
+           || name.compare(QStringLiteral("AnyDesk"), Qt::CaseInsensitive) == 0;
+}
+
+void removeRetiredQuattroDirectServices() {
+    for (const auto &profile : Configs::dataManager->routesRepo->GetAllRouteProfiles()) {
+        if (!profile || profile->isRaw) continue;
+        QList<std::shared_ptr<Configs::RouteRule>> kept;
+        kept.reserve(profile->Rules.size());
+        bool changed = false;
+        for (const auto &rule : profile->Rules) {
+            const bool managedDirectRule = rule && rule->name.startsWith(kQuattroDirectRulePrefix);
+            const auto serviceName = managedDirectRule
+                                         ? rule->name.mid(kQuattroDirectRulePrefix.size())
+                                         : QString();
+            if (managedDirectRule && isRetiredQuattroDirectService(serviceName)) {
+                changed = true;
+                continue;
+            }
+            kept << rule;
+        }
+        if (changed) {
+            profile->Rules = kept;
+            Configs::dataManager->routesRepo->Save(profile);
+        }
+    }
+}
+
+int quattroSubscriptionDisplayRank(const QString &name) {
+    const bool fastestAuto = name.contains(QStringLiteral("Авто"), Qt::CaseInsensitive)
+                             && name.contains(QStringLiteral("Самый быстрый"), Qt::CaseInsensitive);
+    if (!fastestAuto) return 2;
+    return name.contains(QStringLiteral("💎")) ? 0 : 1;
 }
 
 std::shared_ptr<Configs::RouteProfile> ensureQuattroRussiaProfile() {
@@ -157,6 +199,7 @@ void MainWindow::setupQuattroDashboard() {
     if (quattroDashboard != nullptr) return;
 
     ensureQuattroLocalNetworkBypass();
+    removeRetiredQuattroDirectServices();
     const auto russiaProfile = ensureQuattroRussiaProfile();
     const auto currentRoute = Configs::dataManager->routesRepo->GetRouteProfile(
         Configs::dataManager->settingsRepo->current_route_id);
@@ -528,6 +571,14 @@ void MainWindow::refreshQuattroDashboard(bool reloadProfiles) {
                 serverCount++;
             }
         }
+        // Quattro publishes its working Auto endpoints at the end of the raw
+        // subscription. The regular client presents that block first. Mirror
+        // that view while preserving every name and the relative order of all
+        // other subscription rows.
+        std::stable_sort(items.begin(), items.end(), [](const auto &left, const auto &right) {
+            return quattroSubscriptionDisplayRank(left.second)
+                   < quattroSubscriptionDisplayRank(right.second);
+        });
     }
     int selected = running ? (running->type == "autoselector" ? -1 : running->id)
                            : quattroSelectedProfileId;
@@ -797,8 +848,9 @@ void MainWindow::showQuattroChannels() {
                 rule->process_name.contains(QStringLiteral("steam.exe")))
                 savedSteamDirect = true;
             if (rule->name.startsWith(kQuattroDirectRulePrefix)) {
-                hasStructuredDirectSettings = true;
                 const auto serviceName = rule->name.mid(kQuattroDirectRulePrefix.size());
+                if (isRetiredQuattroDirectService(serviceName)) continue;
+                hasStructuredDirectSettings = true;
                 auto existing = std::find_if(savedServices.begin(), savedServices.end(),
                                              [&serviceName](const QuattroDirectService &service) {
                                                  return service.name.compare(serviceName, Qt::CaseInsensitive) == 0;
@@ -824,7 +876,7 @@ void MainWindow::showQuattroChannels() {
     steamDirect->setChecked(hadChannelSettings ? savedSteamDirect : true);
     layout->addWidget(steamDirect);
 
-    auto *directTitle = new QLabel(tr("Прямые сервисы, сайты и приложения"), &dialog);
+    auto *directTitle = new QLabel(tr("Российские сервисы напрямую"), &dialog);
     directTitle->setStyleSheet(QStringLiteral("font-weight:600"));
     layout->addWidget(directTitle);
 

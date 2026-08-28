@@ -1,9 +1,9 @@
 [CmdletBinding()]
 param(
-    [string]$Version = "0.1.1",
+    [string]$Version = "0.1.2",
     [int]$VersionMajor = 0,
     [int]$VersionMinor = 1,
-    [int]$VersionPatch = 1,
+    [int]$VersionPatch = 2,
     [int]$VersionBuild = 0
 )
 

@@ -21,8 +21,10 @@ subscription. Run it on a clean Windows user profile before publishing a release
   fast/premium second, then ordinary country servers. Latency decides within a
   tier, and a healthy active member is kept to avoid routine server hopping.
 - LTE/mobile-only endpoints and decorative subscription rows never enter the
-  desktop Auto pool. The manual picker keeps the full subscription order: LTE
-  endpoints are selectable and decoration rows are visible but disabled.
+  desktop Auto pool. The manual picker contains every subscription row, starts
+  with the diamond `Авто | Самый быстрый` endpoint, then the remaining Auto
+  endpoints, and preserves the relative order of everything else. LTE endpoints
+  are selectable and decoration rows are visible but disabled.
 - Connect is disabled while connecting/disconnecting, preventing duplicate starts.
 - The dashboard and tray display the real active member when Auto is running.
 
@@ -35,7 +37,8 @@ subscription. Run it on a clean Windows user profile before publishing a release
 - Google/Gemini can use a separately selected subscription server.
 - Steam remains a dedicated direct-routing toggle.
 - The service table can add, edit and remove domain and application rules;
-  Yandex, Minimax and AnyDesk defaults persist when the dialog is reopened.
+  Yandex/Yandex Disk, VK/Mail.ru, Ozon/Wildberries and 2GIS defaults persist
+  when the dialog is reopened. Minimax and AnyDesk are not added automatically.
 - ChatGPT/OpenAI, Microsoft/Copilot, Telegram, and Adobe use the main VPN path.
 
 ## Tray and startup
