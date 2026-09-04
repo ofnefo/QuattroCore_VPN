@@ -473,7 +473,7 @@ private:
 
     bool set_system_dns(bool set, bool save_set = true);
 
-    void CheckUpdate();
+    void CheckUpdate(bool quiet = false);
 
     void OpenDashboard();
 

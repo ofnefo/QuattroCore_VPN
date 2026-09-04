@@ -57,7 +57,7 @@ Supported release names use semantic versions such as `v0.1.0`, `v0.2.0-beta.1` 
 
 Each ZIP has a matching `.sha256` release asset. The GUI downloads the selected archive as `Quattro.zip`, verifies SHA-256, shuts down networking cleanly and launches `QuattroUpdater`. Subscription refresh is independent of this release channel.
 
-The locally built `QuattroUpdate.exe` is a self-contained migration wrapper for
+The locally built `QuattroUpdate-<version>.exe` is a self-contained migration wrapper for
 the current per-user Windows install. It carries the same top-level
 `Quattro/` ZIP and runs `QuattroUpdater` from a temporary directory, allowing
 the installed updater binary to be replaced safely without touching config.

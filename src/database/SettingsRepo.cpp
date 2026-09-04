@@ -37,6 +37,7 @@ namespace Configs {
             {"vpn_strict_route",              &vpn_strict_route},
             {"vpn_auto_redirect",             &vpn_auto_redirect},
             {"vpn_l3_bridge",                 &vpn_l3_bridge},
+            {"app_auto_update",               &app_auto_update},
             {"sub_clear",                     &sub_clear},
             {"sub_show_change_popup",         &sub_show_change_popup},
             {"net_insecure",                  &net_insecure},
@@ -222,6 +223,10 @@ namespace Configs {
                 xray_vless_preference = static_cast<Xray::XrayVlessPreference>(ok ? v : 0);
                 continue;
             }
+            if (key == "app_auto_update_last") {
+                app_auto_update_last = str.toLongLong();
+                continue;
+            }
             if (key == "sub_auto_update_last") {
                 sub_auto_update_last = str.toLongLong();
                 continue;
@@ -293,6 +298,7 @@ namespace Configs {
 
         // qint64 last-run timestamps for the periodic auto-update jobs (out of range for
         // the int map, so persisted here alongside the other special cases).
+        addPair(QStringLiteral("app_auto_update_last"), std::to_string(app_auto_update_last));
         addPair(QStringLiteral("sub_auto_update_last"),
             std::to_string(sub_auto_update_last));
         addPair(QStringLiteral("route_auto_update_last"),

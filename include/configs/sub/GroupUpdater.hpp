@@ -49,7 +49,7 @@ namespace Subscription {
         // showDiff: pop up the added/removed profile diff when a single existing
         // group is refreshed by hand (manual "Update subscription"). Automatic
         // paths (update-all, auto-update, imports) leave it false and only log.
-        void AsyncUpdate(const QString &str, int _sub_gid = -1, const std::function<void()> &finish = nullptr, bool showDiff = false);
+        void AsyncUpdate(const QString &str, int _sub_gid = -1, const std::function<void()> &finish = nullptr, bool showDiff = false, const std::function<void(bool)> &result = nullptr);
 
         // Import several independent payloads (a multi-file selection or drop) at
         // once. Each payload keeps its own format detection, but they share one
@@ -57,7 +57,7 @@ namespace Subscription {
         // per file, and the files are not raced against each other on N threads.
         void AsyncImportBatch(const QStringList &payloads, const std::function<void()> &finish = nullptr);
 
-        void Update(const QString &_str, int _sub_gid = -1, bool _not_sub_as_url = false, bool showDiff = false);
+        bool Update(const QString &_str, int _sub_gid = -1, bool _not_sub_as_url = false, bool showDiff = false);
 
     signals:
 

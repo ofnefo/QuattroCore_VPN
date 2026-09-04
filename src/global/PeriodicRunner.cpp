@@ -45,7 +45,7 @@ void PeriodicRunner::tick() {
         if (minutes <= 0) continue; // disabled
         const qint64 last = task.lastRun ? task.lastRun() : 0;
         // last == 0 means "never run", which is always due; otherwise wait out the interval.
-        if (last > 0 && now - last < static_cast<qint64>(minutes) * 60) continue;
+        if (last > 0 && last <= now && now - last < static_cast<qint64>(minutes) * 60) continue;
         // Record the attempt before running so a slow job can't double-fire and so the
         // interval counts from when we started (matches the persisted-schedule intent).
         if (task.setLastRun) task.setLastRun(now);

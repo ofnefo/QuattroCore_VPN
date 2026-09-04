@@ -43,7 +43,7 @@ cmake -S . -B build-local-windows -GNinja `
   -DCMAKE_BUILD_TYPE=RelWithDebInfo `
   -DCMAKE_PREFIX_PATH="$PWD/tools/Qt/lib/cmake" `
   -DOPENSSL_ROOT_DIR="$PWD/tools/openssl" `
-  -DINPUT_VERSION=0.1.2 `
+  -DINPUT_VERSION=0.1.3 `
   -DNKR_PACKAGE=1
 cmake --build build-local-windows --parallel
 ```
@@ -62,9 +62,9 @@ For a local Windows x64 package after staging the four runtime files under
 ```powershell
 & "C:\Program Files (x86)\NSIS\makensis.exe" /NOCD /V3 /INPUTCHARSET UTF8 `
   /DQUATTRO_LOCAL_X64 `
-  /DAPP_VERSION=0.1.2 `
+  /DAPP_VERSION=0.1.3 `
   /DAPP_VERSION_MAJOR=0 /DAPP_VERSION_MINOR=1 `
-  /DAPP_VERSION_PATCH=2 /DAPP_VERSION_BUILD=0 `
+  /DAPP_VERSION_PATCH=3 /DAPP_VERSION_BUILD=0 `
   script\windows_installer.nsi
 ```
 
@@ -80,6 +80,6 @@ an existing per-user installation with:
 script\build_manual_update.ps1
 ```
 
-`QuattroUpdate.exe` stops the installed app and core, applies the same
+`QuattroUpdate-0.1.3.exe` stops the installed app and core, applies the same
 top-level `Quattro/` archive consumed by the repository-built updater, preserves
 all config data, and restarts the client. It targets `%LOCALAPPDATA%\Quattro`.

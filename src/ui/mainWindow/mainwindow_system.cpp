@@ -492,7 +492,7 @@ void MainWindow::OpenDashboard() {
     });
 }
 
-void MainWindow::CheckUpdate() {
+void MainWindow::CheckUpdate(bool quiet) {
     QString search;
 #ifdef Q_OS_WIN
 #  ifdef Q_PROCESSOR_ARM_64
@@ -523,6 +523,7 @@ void MainWindow::CheckUpdate() {
 #  endif
 #endif
     if (search.isEmpty()) {
+        if (quiet) return;
         runOnUiThread([=,this] {
             MessageBoxWarning(QObject::tr("Update"), QObject::tr("Not official support platform"));
         });
@@ -531,6 +532,7 @@ void MainWindow::CheckUpdate() {
 
     auto resp = NetworkRequestHelper::HttpGet("https://api.github.com/repos/ofnefo/QuattroCore_VPN/releases");
     if (!resp.error.isEmpty()) {
+        if (quiet) { MW_show_log(tr("Automatic app update check failed; retrying on the next scheduled check.")); return; }
         runOnUiThread([=,this] {
             MessageBoxWarning(QObject::tr("Update"), QObject::tr("Requesting update error: %1").arg(resp.error + "\n" + resp.data));
         });
@@ -564,8 +566,17 @@ void MainWindow::CheckUpdate() {
     }
 
     if (release_download_url.isEmpty() || !isNewer(assets_name)) {
+        if (quiet) return;
         runOnUiThread([=,this] {
             MessageBoxInfo(QObject::tr("Update"), QObject::tr("No update"));
+        });
+        return;
+    }
+
+    if (quiet) {
+        runOnUiThread([this, assets_name] {
+            tray->showMessage(tr("Обновление Quattro"),
+                tr("Доступна %1. Откройте проверку обновлений в расширенном режиме.").arg(assets_name));
         });
         return;
     }

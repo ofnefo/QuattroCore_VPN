@@ -62,3 +62,26 @@ subscription. Run it on a clean Windows user profile before publishing a release
   `QuattroUpdater.exe`, required runtime files, and valid SHA-256 release sidecars.
 - A packaged AppData installation offers in-app update when `QuattroUpdater.exe`
   is present, and the updater preserves the local configuration directory.
+
+## Network reliability regression checks
+
+- A malformed/HTML/empty subscription response preserves existing profiles,
+  including when `sub_clear` is enabled, and the dashboard reports failure.
+- Manual and periodic subscription updates cannot reconcile profiles concurrently.
+- A timestamp in the future does not suppress periodic updates indefinitely.
+- Daily release checks stay quiet when current/offline, notify when a new release
+  exists, and never start installation. The settings checkbox disables checks.
+- Russia Bypass includes bank/payment/government and Windows Update domains before
+  geographic rules; domain and process conditions are separate rules.
+- Existing channel profiles keep user rules while receiving shipped service rules.
+- Custom Default profiles are not replaced just because their name is Default.
+- With FakeIP enabled, direct service DNS rules precede FakeIP fallback.
+- TUN exclusions and direct rules allow LAN and Tailscale IPv4/IPv6 destinations.
+- With an active external Tailscale adapter, `*.ts.net` uses Quad100 before FakeIP;
+  native Tailscale endpoint profiles keep their existing DNS handling.
+- LAN `.local`, `.lan`, `.home.arpa` names use the local resolver; test short names
+  and custom split DNS separately on the target network.
+- Recovery clears Windows DNS and restarts the active profile, without connecting
+  when disconnected; mode/recovery buttons are disabled during transitions.
+- Validate TUN, system proxy, server switch, recovery and Windows Update on the
+  installed client; a successful standalone server audit does not cover these flows.

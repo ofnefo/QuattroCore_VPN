@@ -9,6 +9,8 @@
 #include <QUrlQuery>
 #include <QJsonDocument>
 #include <QHash>
+#include <QMutex>
+#include <QMutexLocker>
 
 #include "include/configs/common/utils.h"
 #include "include/database/GroupsRepo.h"
@@ -17,6 +19,8 @@
 namespace Subscription {
 
     GroupUpdater *groupUpdater = new GroupUpdater;
+    // All entry points share database reconciliation state; serialize workers.
+    static QMutex subscriptionMutationMutex;
 
     int JsonEndIdx(const QString &str, int begin) {
         int sz = str.length();
@@ -878,7 +882,7 @@ namespace Subscription {
     }
 
     // 在新的 thread 运行
-    void GroupUpdater::AsyncUpdate(const QString &str, int _sub_gid, const std::function<void()> &finish, bool showDiff) {
+    void GroupUpdater::AsyncUpdate(const QString &str, int _sub_gid, const std::function<void()> &finish, bool showDiff, const std::function<void(bool)> &result) {
         auto content = str.trimmed();
         bool asURL = false;
         bool createNewGroup = false;
@@ -911,7 +915,8 @@ namespace Subscription {
                 gid = group->id;
                 MW_dialog_message(MwMessage::SubscriptionNewGroup, {});
             }
-            Update(str, gid, asURL, showDiff);
+            const bool success = Update(str, gid, asURL, showDiff);
+            if (result) result(success);
             emit asyncUpdateCallback(gid);
             if (finish != nullptr) finish();
         });
@@ -921,6 +926,7 @@ namespace Subscription {
         if (payloads.isEmpty()) return;
 
         runOnNewThread([=,this] {
+            QMutexLocker lock(&subscriptionMutationMutex);
             Configs::dataManager->settingsRepo->imported_count = 0;
             auto rawUpdater = std::make_unique<RawUpdater>();
 
@@ -959,7 +965,8 @@ namespace Subscription {
         return outcome;
     }
 
-    void GroupUpdater::Update(const QString &_str, int _sub_gid, bool _not_sub_as_url, bool showDiff) {
+    bool GroupUpdater::Update(const QString &_str, int _sub_gid, bool _not_sub_as_url, bool showDiff) {
+        QMutexLocker lock(&subscriptionMutationMutex);
         // 创建 rawUpdater
         Configs::dataManager->settingsRepo->imported_count = 0;
         auto rawUpdater = std::make_unique<RawUpdater>();
@@ -970,7 +977,7 @@ namespace Subscription {
         bool asURL = _sub_gid >= 0 || _not_sub_as_url; // 把 _str 当作 url 处理（下载内容）
         auto content = _str.trimmed();
         auto group = Configs::dataManager->groupsRepo->GetGroup(_sub_gid);
-        if (group != nullptr && group->archive) return;
+        if (group != nullptr && group->archive) return false;
 
         // 网络请求
         if (asURL) {
@@ -979,14 +986,24 @@ namespace Subscription {
 
             auto resp = NetworkRequestHelper::HttpGet(content, Configs::dataManager->settingsRepo->sub_send_hwid);
             if (!resp.error.isEmpty()) {
-                MW_show_log("<<<<<<<< " + QObject::tr("Requesting subscription %1 error: %2").arg(groupName, resp.error + "\n" + resp.data));
-                return;
+                MW_show_log("<<<<<<<< " + QObject::tr("Requesting subscription %1 error: %2").arg(groupName, resp.error));
+                return false;
             }
 
             content = resp.data;
             sub_user_info = NetworkRequestHelper::GetHeader(resp.header, "Subscription-UserInfo");
 
             MW_show_log("<<<<<<<< " + QObject::tr("Subscription request fininshed: %1").arg(groupName));
+        }
+
+        MW_show_log(">>>>>>>> " + QObject::tr("Processing subscription data..."));
+        rawUpdater->update(content);
+        content.clear();
+        // Validate before sub_clear or diff deletion. HTML error pages and empty
+        // provider responses must not erase a working subscription.
+        if (asURL && rawUpdater->updated_order.isEmpty()) {
+            MW_show_log(QObject::tr("Subscription returned no valid servers; existing profiles were preserved."));
+            return false;
         }
 
         QList<std::shared_ptr<Configs::Profile>> in;
@@ -1026,7 +1043,7 @@ namespace Subscription {
                     runOnUiThread([=] {
                         MessageBoxWarning("Internal Error", "DB Error when deleting profiles, Please try again.");
                     });
-                    return;
+                    return false;
                 }
                 disturbed = outcome.deleted;
                 // A survivor still belongs to the subscription: fall through to the diff.
@@ -1039,10 +1056,7 @@ namespace Subscription {
             }
         }
 
-        MW_show_log(">>>>>>>> " + QObject::tr("Processing subscription data..."));
-        rawUpdater->update(content);
-        content.clear();
-        Configs::dataManager->profilesRepo->AddProfileBatch(rawUpdater->updated_order, rawUpdater->gid_add_to);
+        if (!Configs::dataManager->profilesRepo->AddProfileBatch(rawUpdater->updated_order, rawUpdater->gid_add_to)) return false;
         MW_show_log(">>>>>>>> " + QObject::tr("Process complete, applying..."));
 
         if (group != nullptr) {
@@ -1191,6 +1205,7 @@ namespace Subscription {
             Configs::dataManager->settingsRepo->imported_count = rawUpdater->updated_order.count();
             MW_dialog_message(MwMessage::SubscriptionFinished, {});
         }
+        return true;
     }
 } // namespace Subscription
 

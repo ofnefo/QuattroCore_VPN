@@ -155,6 +155,8 @@ namespace Configs {
         // of the last auto-update sweep, used to decide when the next one is due.
         int sub_auto_update = -30;
         qint64 sub_auto_update_last = 0;
+        bool app_auto_update = true;
+        qint64 app_auto_update_last = 0;
         bool sub_clear = false;
         bool sub_show_change_popup = true;
         bool sub_send_hwid = false;

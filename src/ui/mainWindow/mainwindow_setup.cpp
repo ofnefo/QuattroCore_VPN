@@ -1162,6 +1162,16 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     // interval still triggers an update next launch instead of resetting the clock.
     {
         auto* runner = Quattro::PeriodicRunner::instance();
+        runner->Add({
+            tr("application releases"),
+            [] { return Configs::dataManager->settingsRepo->app_auto_update ? 1440 : 0; },
+            [] { return Configs::dataManager->settingsRepo->app_auto_update_last; },
+            [](qint64 t) {
+                Configs::dataManager->settingsRepo->app_auto_update_last = t;
+                Configs::dataManager->settingsRepo->Save();
+            },
+            [this] { runOnNewThread([this] { CheckUpdate(true); }); },
+        });
         // Settings store the interval sign-encoded (negative = disabled); < 30 min is
         // treated as off, matching the "invalid if less than 30" UI hint.
         const auto minutesOf = [](int v) { return v >= 30 ? v : 0; };

@@ -41,6 +41,7 @@ signals:
     void channelsRequested();
     void routingRequested();
     void settingsRequested();
+    void recoverRequested();
     void advancedRequested();
 
 private:
@@ -51,6 +52,7 @@ private:
     QLabel *m_statusText = nullptr;
     QLabel *m_activeServer = nullptr;
     QPushButton *m_connectButton = nullptr;
+    QPushButton *m_recoverButton = nullptr;
     QLineEdit *m_subscription = nullptr;
     QLabel *m_subscriptionStatus = nullptr;
     QPushButton *m_subscriptionSave = nullptr;

@@ -21,6 +21,7 @@
 #include <QHeaderView>
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QLibrary>
 #include <QLineEdit>
 #include <QMenu>
 #include <QMessageBox>
@@ -80,6 +81,22 @@ QList<QuattroDirectService> defaultQuattroDirectServices() {
          {QStringLiteral("ozon.ru"), QStringLiteral("ozonusercontent.com"),
           QStringLiteral("wildberries.ru"), QStringLiteral("wb.ru"),
           QStringLiteral("wbbasket.ru")}, {}},
+        {QStringLiteral("Банки / платежи / Госуслуги"),
+         {QStringLiteral("sberbank.ru"), QStringLiteral("sber.ru"), QStringLiteral("sberbank.com"),
+          QStringLiteral("tbank.ru"), QStringLiteral("tinkoff.ru"), QStringLiteral("tinkoffbank.ru"),
+          QStringLiteral("vtb.ru"), QStringLiteral("alfabank.ru"), QStringLiteral("alfabank.com"),
+          QStringLiteral("gazprombank.ru"), QStringLiteral("raiffeisen.ru"), QStringLiteral("rshb.ru"),
+          QStringLiteral("psbank.ru"), QStringLiteral("sovcombank.ru"), QStringLiteral("rosbank.ru"),
+          QStringLiteral("nspk.ru"), QStringLiteral("sbp.nspk.ru"), QStringLiteral("mironline.ru"),
+          QStringLiteral("yoomoney.ru"), QStringLiteral("yookassa.ru"), QStringLiteral("gosuslugi.ru"),
+          QStringLiteral("nalog.gov.ru")}, {}},
+        {QStringLiteral("Windows Update"),
+         {QStringLiteral("windowsupdate.com"), QStringLiteral("windowsupdate.microsoft.com"),
+          QStringLiteral("update.microsoft.com"), QStringLiteral("download.microsoft.com"),
+          QStringLiteral("delivery.mp.microsoft.com"), QStringLiteral("do.dsp.mp.microsoft.com")}, {}},
+        {QStringLiteral("Tailscale"),
+         {QStringLiteral("tailscale.com"), QStringLiteral("tailscale.io"), QStringLiteral("ts.net")},
+         {QStringLiteral("tailscaled.exe")}},
         {QStringLiteral("2ГИС"),
          {QStringLiteral("2gis.ru"), QStringLiteral("2gis.com"), QStringLiteral("dgis.com")}, {}},
     };
@@ -153,6 +170,43 @@ std::shared_ptr<Configs::RouteProfile> ensureQuattroRussiaProfile() {
     managedRule->outboundID = Configs::directID;
     managedRule->rule_set = {QStringLiteral("geosite-ru"), QStringLiteral("geoip-ru")};
 
+    // Domain rules are separate from geosite/geoip: conditions on a single rule
+    // would be ANDed. Put these before geographic IP matching.
+    const QString builtinPrefix = QStringLiteral("Quattro Built-in • Service • ");
+    QList<std::shared_ptr<Configs::RouteRule>> services;
+    for (const auto &service : defaultQuattroDirectServices()) {
+        auto rule = std::make_shared<Configs::RouteRule>();
+        rule->name = builtinPrefix + service.name;
+        rule->type = Configs::simpleAddressBypass;
+        rule->action = QStringLiteral("route");
+        rule->outboundID = Configs::directID;
+        rule->domain_suffix = service.domains;
+        services << rule;
+        if (!service.processes.isEmpty()) {
+            auto process = std::make_shared<Configs::RouteRule>();
+            process->name = builtinPrefix + service.name + QStringLiteral(" applications");
+            process->type = Configs::simpleProcessNameBypass;
+            process->action = QStringLiteral("route");
+            process->outboundID = Configs::directID;
+            process->process_name = service.processes;
+            services << process;
+        }
+    }
+    auto local = std::make_shared<Configs::RouteRule>();
+    local->name = builtinPrefix + QStringLiteral("Local networks");
+    local->type = Configs::simpleAddressBypass;
+    local->action = QStringLiteral("route");
+    local->outboundID = Configs::directID;
+    local->ip_cidr = {QStringLiteral("10.0.0.0/8"), QStringLiteral("100.64.0.0/10"),
+                      QStringLiteral("127.0.0.0/8"), QStringLiteral("169.254.0.0/16"),
+                      QStringLiteral("172.16.0.0/12"), QStringLiteral("192.168.0.0/16"),
+                      QStringLiteral("::1/128"), QStringLiteral("fc00::/7"), QStringLiteral("fe80::/10")};
+    services << local;
+    QList<std::shared_ptr<Configs::RouteRule>> retained;
+    for (const auto &rule : profile->Rules)
+        if (rule && !rule->name.startsWith(builtinPrefix)) retained << rule;
+    profile->Rules = services + retained;
+
     profile->isRaw = false;
     profile->isRemote = false;
     profile->remoteURL.clear();
@@ -201,12 +255,29 @@ void MainWindow::setupQuattroDashboard() {
     ensureQuattroLocalNetworkBypass();
     removeRetiredQuattroDirectServices();
     const auto russiaProfile = ensureQuattroRussiaProfile();
+    // Refresh only shipped rules in existing channel profiles; keep user rules first.
+    if (russiaProfile) {
+        for (const auto &route : Configs::dataManager->routesRepo->GetAllRouteProfiles()) {
+            if (!route || route->isRaw || !route->name.startsWith(QStringLiteral("Quattro Channels"))
+                || !route->name.contains(QStringLiteral("Russia"))) continue;
+            QList<std::shared_ptr<Configs::RouteRule>> rules;
+            for (const auto &rule : route->Rules)
+                if (rule && !rule->name.startsWith(QStringLiteral("Quattro Built-in •"))) rules << rule;
+            for (const auto &rule : russiaProfile->Rules)
+                if (rule && rule->name.startsWith(QStringLiteral("Quattro Built-in •")))
+                    rules << std::make_shared<Configs::RouteRule>(*rule);
+            route->Rules = rules;
+            Configs::dataManager->routesRepo->Save(route);
+        }
+    }
     const auto currentRoute = Configs::dataManager->routesRepo->GetRouteProfile(
         Configs::dataManager->settingsRepo->current_route_id);
     // Product default: local and Russian traffic is direct. Preserve explicit
     // custom routing, but migrate the untouched upstream Default profile.
     if (russiaProfile && currentRoute
-        && currentRoute->name.compare(QStringLiteral("Default"), Qt::CaseInsensitive) == 0) {
+        && currentRoute->name.compare(QStringLiteral("Default"), Qt::CaseInsensitive) == 0
+        && !currentRoute->isRaw && currentRoute->Rules.size() == 1
+        && currentRoute->Rules.first()->action == QStringLiteral("hijack-dns")) {
         Configs::dataManager->settingsRepo->current_route_id = russiaProfile->id;
         Configs::dataManager->settingsRepo->Save();
     }
@@ -419,6 +490,18 @@ void MainWindow::setupQuattroDashboard() {
             this, &MainWindow::on_menu_routing_settings_triggered);
     connect(quattroDashboard, &QuattroDashboard::channelsRequested,
             this, &MainWindow::showQuattroChannels);
+    connect(quattroDashboard, &QuattroDashboard::recoverRequested, this, [this] {
+#ifdef Q_OS_WIN
+        QLibrary dnsLibrary(QStringLiteral("dnsapi"));
+        using FlushDns = int (__stdcall *)();
+        const auto flush = reinterpret_cast<FlushDns>(dnsLibrary.resolve("DnsFlushResolverCache"));
+        const bool cleared = flush && flush();
+        MW_show_log(cleared ? tr("DNS-кэш Windows очищен.") : tr("Не удалось очистить DNS-кэш Windows."));
+#endif
+        const int id = Configs::dataManager->settingsRepo->started_id;
+        if (id >= 0) profile_start(id);
+        else MW_show_log(tr("VPN отключён; восстановление не запускает новое подключение."));
+    });
     connect(quattroDashboard, &QuattroDashboard::subscriptionSubmitted,
             this, &MainWindow::importQuattroSubscription);
     connect(quattroDashboard, &QuattroDashboard::subscriptionRefreshRequested, this, [this] {
@@ -428,16 +511,14 @@ void MainWindow::setupQuattroDashboard() {
             return;
         }
         quattroDashboard->setSubscriptionState(true, tr("Обновляю список серверов…"));
-        Subscription::groupUpdater->AsyncUpdate(group->url, group->id, [this] {
-            runOnUiThread([this] {
+        Subscription::groupUpdater->AsyncUpdate(group->url, group->id, nullptr, true, [this](bool success) {
+            runOnUiThread([this, success] {
                 refreshQuattroDashboard(true);
-                const auto current = Configs::dataManager->groupsRepo->CurrentGroup();
-                const int count = current ? current->Profiles().size() : 0;
-                quattroDashboard->setSubscriptionState(
-                    false, count > 0 ? tr("Готово: %1 серверов").arg(count)
-                                     : tr("Серверы не получены. Проверьте ссылку и журнал."));
+                quattroDashboard->setSubscriptionState(false, success
+                    ? tr("Подписка обновлена.")
+                    : tr("Обновление не удалось. Подробности в журнале."));
             });
-        }, true);
+        });
     });
     connect(quattroDashboard, &QuattroDashboard::modeChanged, this,
             [this](QuattroDashboard::Mode mode) {
@@ -560,7 +641,8 @@ void MainWindow::refreshQuattroDashboard(bool reloadProfiles) {
     const auto group = Configs::dataManager->groupsRepo->CurrentGroup();
     if (group) {
         for (const auto &profile : Configs::dataManager->profilesRepo->GetProfileBatch(group->Profiles())) {
-            if (!profile || profile->type == "autoselector") continue;
+            if (!profile || profile->type == "autoselector"
+                || isQuattroSubscriptionDecoration(profile->name)) continue;
             const auto displayName = profile->outbound->DisplayName();
             if (isQuattroSubscriptionDecoration(displayName)) {
                 // Preserve the subscription's sections and exact order in the
@@ -829,7 +911,8 @@ void MainWindow::showQuattroChannels() {
     const auto group = Configs::dataManager->groupsRepo->CurrentGroup();
     if (group) {
         for (const auto &profile : Configs::dataManager->profilesRepo->GetProfileBatch(group->Profiles())) {
-            if (!profile || profile->type == "autoselector") continue;
+            if (!profile || profile->type == "autoselector"
+                || isQuattroSubscriptionDecoration(profile->name)) continue;
             googleServer->addItem(profile->outbound->DisplayName(), profile->id);
         }
     }

@@ -20,7 +20,7 @@
 Unicode true
 
 Name "Quattro Update ${APP_VERSION}"
-OutFile "QuattroUpdate.exe"
+OutFile "QuattroUpdate-${APP_VERSION}.exe"
 RequestExecutionLevel user
 
 ; The payload is already a compressed ZIP. Recompressing it makes the local

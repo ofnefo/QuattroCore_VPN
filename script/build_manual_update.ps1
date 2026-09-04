@@ -1,9 +1,9 @@
 [CmdletBinding()]
 param(
-    [string]$Version = "0.1.2",
+    [string]$Version = "0.1.3",
     [int]$VersionMajor = 0,
     [int]$VersionMinor = 1,
-    [int]$VersionPatch = 2,
+    [int]$VersionPatch = 3,
     [int]$VersionBuild = 0
 )
 
@@ -17,6 +17,12 @@ $makensis = "${env:ProgramFiles(x86)}\NSIS\makensis.exe"
 
 if (-not $deploymentRoot.StartsWith($projectRoot, [StringComparison]::OrdinalIgnoreCase)) {
     throw "Unexpected manual-update staging path: $deploymentRoot"
+}
+
+# Reject mislabeled packages before archiving: the GUI resource and wrapper must agree.
+$guiVersion = (Get-Item -LiteralPath (Join-Path $runtimeRoot "Quattro.exe")).VersionInfo.ProductVersion
+if ($guiVersion -notmatch "^$([regex]::Escape($Version))(?:\.0)?$") {
+    throw "Staged Quattro.exe version '$guiVersion' does not match requested '$Version'. Rebuild the GUI first."
 }
 
 if (Test-Path -LiteralPath $deploymentRoot) {
@@ -56,4 +62,4 @@ finally {
     Pop-Location
 }
 
-Get-Item -LiteralPath (Join-Path $projectRoot "QuattroUpdate.exe")
+Get-Item -LiteralPath (Join-Path $projectRoot "QuattroUpdate-$Version.exe")

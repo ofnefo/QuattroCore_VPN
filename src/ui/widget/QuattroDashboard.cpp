@@ -296,6 +296,10 @@ QuattroDashboard::QuattroDashboard(QWidget *parent) : QWidget(parent) {
     settings->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
     auto *advanced = secondaryButton(tr("Расширенный режим"), page);
     advanced->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
+    m_recoverButton = secondaryButton(tr("Восстановить сеть"), page);
+    m_recoverButton->setToolTip(tr("Очистить DNS-кэш Windows и переподключить активный VPN. Текущие соединения прервутся."));
+    m_footerLayout->addWidget(m_recoverButton);
+    connect(m_recoverButton, &QPushButton::clicked, this, &QuattroDashboard::recoverRequested);
     m_footerLayout->addWidget(settings);
     m_footerLayout->addWidget(advanced);
     connect(settings, &QPushButton::clicked, this, &QuattroDashboard::settingsRequested);
@@ -515,6 +519,9 @@ void QuattroDashboard::setConnectionState(bool connected, const QString &status,
                                           bool transitioning) {
     m_connected = connected;
     m_transitioning = transitioning;
+    m_tunButton->setEnabled(!transitioning);
+    m_proxyButton->setEnabled(!transitioning);
+    m_recoverButton->setEnabled(!transitioning);
     m_statusText->setText(status);
     m_statusDot->setStyleSheet(connected ? QStringLiteral("color:#35d08a")
                                          : QStringLiteral("color:#697586"));

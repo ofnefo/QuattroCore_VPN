@@ -6,6 +6,7 @@
 #include <QApplication>
 #include <QFileInfo>
 #include <QHostAddress>
+#include <QNetworkInterface>
 #include <QRegularExpression>
 
 
@@ -1017,6 +1018,34 @@ namespace Configs {
                 }
             }
 
+            // Private names must be resolved before FakeIP and public DNS.
+            if (!ctx.forTest && !settings.disable_private_range_bypass) {
+                headRules += QJsonObject{
+                    {"domain_suffix", QJsonArray{"local", "lan", "home.arpa"}},
+                    {"action", "route"}, {"server", tags::dnsLocal},
+                };
+                bool externalTailscale = false;
+                for (const auto &iface : QNetworkInterface::allInterfaces()) {
+                    if (iface.flags().testFlag(QNetworkInterface::IsUp)
+                        && (iface.humanReadableName().contains("tailscale", Qt::CaseInsensitive)
+                            || iface.name().contains("tailscale", Qt::CaseInsensitive))) {
+                        externalTailscale = true;
+                        break;
+                    }
+                }
+                if (externalTailscale && !isTailscale) {
+                    servers += QJsonObject{
+                        {"type", "udp"}, {"tag", "dns-external-tailscale"},
+                        // No detour: the core rejects a detour to our empty direct outbound.
+                        {"server", "100.100.100.100"},
+                    };
+                    headRules += QJsonObject{
+                        {"domain_suffix", QJsonArray{"ts.net"}}, {"action", "route"},
+                        {"server", "dns-external-tailscale"},
+                    };
+                }
+            }
+
             // Hosts file
             if (!ctx.forTest && settings.dns_use_hosts) {
                 servers += QJsonObject{{"tag", tags::dnsHosts}, {"type", "hosts"}};
@@ -1121,7 +1150,11 @@ namespace Configs {
                 }
             }
 
-            // FakeIP
+            if (dns.needDirectDnsRules) {
+                appendDnsRoutingRules(rules, dns.direct, settings.direct_dns_strategy, tags::dnsDirect);
+            }
+
+            // FakeIP applies only after direct destinations have received real addresses.
             if (settings.fake_dns) {
                 servers += QJsonObject{
                         {"tag", tags::dnsFake},
@@ -1138,10 +1171,6 @@ namespace Configs {
                      {"server", tags::dnsFake}
                 };
                 independentCache = true;
-            }
-
-            if (dns.needDirectDnsRules) {
-                appendDnsRoutingRules(rules, dns.direct, settings.direct_dns_strategy, tags::dnsDirect);
             }
 
             const bool useDirectFinalDNS = settings.dns_final_out == tags::direct;
